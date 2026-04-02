@@ -15,7 +15,9 @@ export async function getReviews() {
 
 export async function getReviewStats() {
   const supabase = createServerClient()
-  const { data, error } = await supabase.from("reviews").select("food_rating, ambience_rating, service_rating")
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("food_rating, ambience_rating, service_rating")
   if (error) throw error
 
   if (!data || data.length === 0) {
@@ -23,9 +25,20 @@ export async function getReviewStats() {
   }
 
   const total = data.length
-  const food = data.reduce((sum, r) => sum + (r.food_rating || 0), 0) / total
-  const ambience = data.reduce((sum, r) => sum + (r.ambience_rating || 0), 0) / total
-  const service = data.reduce((sum, r) => sum + (r.service_rating || 0), 0) / total
+
+  const foodRatings = data.filter((r) => r.food_rating != null)
+  const ambienceRatings = data.filter((r) => r.ambience_rating != null)
+  const serviceRatings = data.filter((r) => r.service_rating != null)
+
+  const food = foodRatings.length > 0
+    ? foodRatings.reduce((sum, r) => sum + r.food_rating, 0) / foodRatings.length
+    : 0
+  const ambience = ambienceRatings.length > 0
+    ? ambienceRatings.reduce((sum, r) => sum + r.ambience_rating, 0) / ambienceRatings.length
+    : 0
+  const service = serviceRatings.length > 0
+    ? serviceRatings.reduce((sum, r) => sum + r.service_rating, 0) / serviceRatings.length
+    : 0
 
   return {
     food: Math.round(food * 10) / 10,

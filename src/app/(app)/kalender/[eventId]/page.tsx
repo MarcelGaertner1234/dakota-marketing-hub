@@ -19,8 +19,14 @@ export default async function EventDetailPage({
   const event: any = await getEvent(eventId).catch(() => null)
   if (!event) notFound()
 
+  /** Parse a date-only string (YYYY-MM-DD) as local midnight, avoiding UTC off-by-one. */
+  function parseDateLocal(dateStr: string): Date {
+    const [y, m, d] = dateStr.split("-").map(Number)
+    return new Date(y, m - 1, d)
+  }
+
   const leadTimeDays = event.lead_time_days || 28
-  const eventDate = new Date(event.start_date)
+  const eventDate = parseDateLocal(event.start_date)
   const warningDate = new Date(eventDate)
   warningDate.setDate(warningDate.getDate() - leadTimeDays)
   const now = new Date()
@@ -70,7 +76,7 @@ export default async function EventDetailPage({
             <div>
               <p className="text-xs text-gray-500">Datum</p>
               <p className="font-medium">
-                {new Date(event.start_date).toLocaleDateString("de-CH", {
+                {parseDateLocal(event.start_date).toLocaleDateString("de-CH", {
                   weekday: "long",
                   day: "numeric",
                   month: "long",

@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Plus, CheckCircle2 } from "lucide-react"
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { createTask, updateTaskStatus } from "@/lib/actions/tasks"
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/lib/constants"
 
@@ -28,11 +29,13 @@ export function TaskList({
 }) {
   const [showForm, setShowForm] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   function handleToggle(taskId: string, currentStatus: string) {
     const newStatus = currentStatus === "done" ? "todo" : "done"
-    startTransition(() => {
-      updateTaskStatus(taskId, newStatus)
+    startTransition(async () => {
+      await updateTaskStatus(taskId, newStatus)
+      router.refresh()
     })
   }
 
@@ -41,6 +44,7 @@ export function TaskList({
     startTransition(async () => {
       await createTask(formData)
       setShowForm(false)
+      router.refresh()
     })
   }
 
@@ -91,7 +95,7 @@ export function TaskList({
               <div className="flex items-center gap-2 mt-0.5">
                 {task.due_date && (
                   <span className="text-xs text-gray-500">
-                    Fällig: {new Date(task.due_date).toLocaleDateString("de-CH")}
+                    Fällig: {(() => { const [y,m,d] = task.due_date!.split("-").map(Number); return new Date(y, m-1, d); })().toLocaleDateString("de-CH")}
                   </span>
                 )}
                 {task.assigned_member && (

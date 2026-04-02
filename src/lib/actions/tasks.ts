@@ -51,11 +51,20 @@ export async function updateTaskStatus(taskId: string, status: string) {
   if (status === "done") {
     update.completed_at = new Date().toISOString()
   }
+  // Get event_id before updating
+  const { data: task } = await supabase
+    .from("tasks")
+    .select("event_id")
+    .eq("id", taskId)
+    .single()
+
   const { error } = await supabase
     .from("tasks")
     .update(update)
     .eq("id", taskId)
   if (error) throw error
+
+  if (task?.event_id) revalidatePath(`/kalender/${task.event_id}`)
   revalidatePath("/kalender")
   revalidatePath("/")
 }

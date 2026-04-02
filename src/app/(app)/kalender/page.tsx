@@ -5,7 +5,8 @@ import Link from "next/link"
 import { getEvents, getHolidays } from "@/lib/actions/events"
 
 export default async function KalenderPage() {
-  const [events, holidays] = await Promise.all([getEvents(), getHolidays()])
+  const currentYear = new Date().getFullYear()
+  const [events, holidays] = await Promise.all([getEvents(currentYear), getHolidays(currentYear)])
 
   return (
     <div className="space-y-6">

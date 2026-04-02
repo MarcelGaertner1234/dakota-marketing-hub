@@ -17,6 +17,12 @@ import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from "@/lib/constants"
 import type { EventType } from "@/types/database"
 import Link from "next/link"
 
+/** Parse a date-only string (YYYY-MM-DD) as local midnight, avoiding UTC off-by-one. */
+function parseDateLocal(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  return new Date(y, m - 1, d)
+}
+
 const MONTH_NAMES = [
   "Januar", "Februar", "März", "April", "Mai", "Juni",
   "Juli", "August", "September", "Oktober", "November", "Dezember",
@@ -70,8 +76,8 @@ function MonthGrid({
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month
 
   const monthItems = allItems.filter((e) => {
-    const d = new Date(e.start_date)
-    return d.getFullYear() === year && d.getMonth() === month
+    const [y, m] = e.start_date.split("-").map(Number)
+    return y === year && m - 1 === month
   })
 
   const days: (number | null)[] = []
@@ -144,7 +150,7 @@ function MonthGrid({
                   <div className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: EVENT_TYPE_COLORS[e.event_type] }} />
                   <span className="truncate text-[10px] text-gray-600">
-                    {new Date(e.start_date).getDate()}. {e.title}
+                    {parseDateLocal(e.start_date).getDate()}. {e.title}
                   </span>
                 </button>
               ))}
@@ -162,11 +168,17 @@ function MonthGrid({
 // Year Calendar
 // ============================================================
 export function YearCalendar({ events, holidays }: YearCalendarProps) {
-  const [year, setYear] = useState(2026)
+  const [year, setYear] = useState(() => new Date().getFullYear())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
-  const yearEvents = events.filter((e) => new Date(e.start_date).getFullYear() === year)
-  const yearHolidays = holidays.filter((h) => new Date(h.date).getFullYear() === year)
+  const yearEvents = events.filter((e) => {
+    const [y] = e.start_date.split("-").map(Number)
+    return y === year
+  })
+  const yearHolidays = holidays.filter((h) => {
+    const [y] = h.date.split("-").map(Number)
+    return y === year
+  })
 
   const allItems: CalendarEvent[] = [
     ...yearEvents,
@@ -182,7 +194,7 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
     ? allItems.filter((e) => e.start_date === selectedDate)
     : []
 
-  const selectedDateObj = selectedDate ? new Date(selectedDate) : null
+  const selectedDateObj = selectedDate ? parseDateLocal(selectedDate) : null
   const realEvents = selectedDayEvents.filter((e) => !e.id.startsWith("holiday-"))
   const holidayEvents = selectedDayEvents.filter((e) => e.id.startsWith("holiday-"))
 

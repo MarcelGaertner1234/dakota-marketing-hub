@@ -138,6 +138,10 @@ export default async function NeuerPostPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
+                <Label htmlFor="series_id">Serie (optional)</Label>
+                <Input id="series_id" name="series_id" placeholder="z.B. afterwork-launch" />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="series_order">Serie — Teil Nr.</Label>
                 <Input id="series_order" name="series_order" type="number" min={1} max={10} placeholder="z.B. 1 (von 5)" />
               </div>
