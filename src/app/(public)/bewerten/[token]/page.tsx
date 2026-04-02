@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Star, Gift } from "lucide-react"
+import { Star, Gift, Loader2 } from "lucide-react"
 
 function StarInput({
   label,
@@ -30,9 +31,7 @@ function StarInput({
           >
             <Star
               className={`h-8 w-8 ${
-                i < value
-                  ? "fill-yellow-400 text-yellow-400"
-                  : "text-gray-300"
+                i < value ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
               }`}
             />
           </button>
@@ -43,6 +42,9 @@ function StarInput({
 }
 
 export default function BewertungPage() {
+  const params = useParams()
+  const token = params.token as string
+
   const [food, setFood] = useState(0)
   const [ambience, setAmbience] = useState(0)
   const [service, setService] = useState(0)
@@ -50,13 +52,36 @@ export default function BewertungPage() {
   const [name, setName] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [goodyCode, setGoodyCode] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // Generate a goody code
-    const code = `DAKOTA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-    setGoodyCode(code)
-    setSubmitted(true)
+    setLoading(true)
+    setError("")
+
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          food_rating: food,
+          ambience_rating: ambience,
+          service_rating: service,
+          comment: comment || undefined,
+          guest_name: name || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Fehler beim Speichern")
+      setGoodyCode(data.goody_code)
+      setSubmitted(true)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Unbekannter Fehler")
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (submitted) {
@@ -67,9 +92,7 @@ export default function BewertungPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <Gift className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-[#2C2C2C]">
-              Merci viumau!
-            </h2>
+            <h2 className="text-2xl font-bold text-[#2C2C2C]">Merci viumau!</h2>
             <p className="text-gray-600">
               Danke für deine Bewertung. Als kleines Dankeschön:
             </p>
@@ -129,11 +152,18 @@ export default function BewertungPage() {
               />
             </div>
 
+            {error && (
+              <p className="text-sm text-red-500 text-center">{error}</p>
+            )}
+
             <Button
               type="submit"
               className="w-full bg-[#C5A572] hover:bg-[#A08050]"
-              disabled={food === 0 || ambience === 0 || service === 0}
+              disabled={food === 0 || ambience === 0 || service === 0 || loading}
             >
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               Bewertung abschicken
             </Button>
 

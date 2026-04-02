@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Star, QrCode } from "lucide-react"
 import Link from "next/link"
+import { getReviewStats, getReviews } from "@/lib/actions/reviews"
 
 function StarDisplay({ rating }: { rating: number }) {
   return (
@@ -10,7 +11,7 @@ function StarDisplay({ rating }: { rating: number }) {
         <Star
           key={i}
           className={`h-4 w-4 ${
-            i < rating
+            i < Math.round(rating)
               ? "fill-yellow-400 text-yellow-400"
               : "text-gray-300"
           }`}
@@ -20,13 +21,17 @@ function StarDisplay({ rating }: { rating: number }) {
   )
 }
 
-export default function BewertungenPage() {
+export default async function BewertungenPage() {
+  const [stats, reviews] = await Promise.all([getReviewStats(), getReviews()])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[#2C2C2C]">Bewertungen</h1>
-          <p className="text-gray-500">Gäste-Feedback auswerten und verwalten</p>
+          <p className="text-gray-500">
+            Gäste-Feedback auswerten — {stats.total} Bewertungen total
+          </p>
         </div>
         <Link href="/bewertungen/qr">
           <Button className="bg-[#C5A572] hover:bg-[#A08050]">
@@ -43,8 +48,8 @@ export default function BewertungenPage() {
             <CardTitle className="text-sm text-gray-500">Food</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2">
-            <span className="text-2xl font-bold">4.2</span>
-            <StarDisplay rating={4} />
+            <span className="text-2xl font-bold">{stats.food || "—"}</span>
+            <StarDisplay rating={stats.food} />
           </CardContent>
         </Card>
         <Card>
@@ -52,8 +57,8 @@ export default function BewertungenPage() {
             <CardTitle className="text-sm text-gray-500">Ambiente</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2">
-            <span className="text-2xl font-bold">4.5</span>
-            <StarDisplay rating={5} />
+            <span className="text-2xl font-bold">{stats.ambience || "—"}</span>
+            <StarDisplay rating={stats.ambience} />
           </CardContent>
         </Card>
         <Card>
@@ -61,8 +66,8 @@ export default function BewertungenPage() {
             <CardTitle className="text-sm text-gray-500">Service</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2">
-            <span className="text-2xl font-bold">4.0</span>
-            <StarDisplay rating={4} />
+            <span className="text-2xl font-bold">{stats.service || "—"}</span>
+            <StarDisplay rating={stats.service} />
           </CardContent>
         </Card>
       </div>
@@ -72,10 +77,35 @@ export default function BewertungenPage() {
         <CardHeader>
           <CardTitle>Letzte Bewertungen</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-500">
-            Verbinde Supabase um Bewertungen zu sehen.
-          </p>
+        <CardContent className="space-y-4">
+          {reviews && reviews.length > 0 ? (
+            reviews.slice(0, 20).map((review) => (
+              <div key={review.id} className="rounded-lg border p-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-4 text-sm">
+                      <span>Food: <strong>{review.food_rating}/5</strong></span>
+                      <span>Ambiente: <strong>{review.ambience_rating}/5</strong></span>
+                      <span>Service: <strong>{review.service_rating}/5</strong></span>
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-gray-600 italic">&quot;{review.comment}&quot;</p>
+                    )}
+                    {review.guest_name && (
+                      <p className="text-xs text-gray-400">— {review.guest_name}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400 shrink-0">
+                    {new Date(review.created_at).toLocaleDateString("de-CH")}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Noch keine Bewertungen. Verteile QR-Codes auf den Tischen!
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,40 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Globe, Share2 as ShareIcon } from "lucide-react"
+import { Plus, Globe } from "lucide-react"
 import Link from "next/link"
-
-const DEMO_POSTS = [
-  {
-    title: "Afterwork Launch Teaser",
-    platform: "instagram",
-    type: "reel",
-    status: "draft",
-    date: "2026-04-20",
-  },
-  {
-    title: "Spezialitätenabend Ankündigung",
-    platform: "facebook",
-    type: "post",
-    status: "planned",
-    date: "2026-04-14",
-  },
-  {
-    title: "Friday Lounge Short #1",
-    platform: "tiktok",
-    type: "short",
-    status: "draft",
-    date: "2026-04-25",
-    series: "Friday Lounge Serie (1/5)",
-  },
-  {
-    title: "Oster-Brunch Fotos",
-    platform: "instagram",
-    type: "post",
-    status: "published",
-    date: "2026-04-07",
-  },
-]
+import { getSocialPosts } from "@/lib/actions/social"
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -50,7 +19,9 @@ const STATUS_LABELS: Record<string, string> = {
   published: "Veröffentlicht",
 }
 
-export default function SocialPage() {
+export default async function SocialPage() {
+  const posts = await getSocialPosts()
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -66,40 +37,59 @@ export default function SocialPage() {
         </Link>
       </div>
 
-      {/* Content Calendar */}
       <div className="space-y-3">
-        {DEMO_POSTS.map((post, i) => (
-          <Card key={i} className="transition-shadow hover:shadow-md">
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100">
-                {post.platform === "instagram" && (
-                  <span className="text-sm font-bold text-pink-500">IG</span>
-                )}
-                {post.platform === "facebook" && (
-                  <Globe className="h-5 w-5 text-blue-600" />
-                )}
-                {post.platform === "tiktok" && (
-                  <span className="text-sm font-bold">TT</span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{post.title}</p>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>{new Date(post.date).toLocaleDateString("de-CH")}</span>
-                  <span className="capitalize">{post.type}</span>
-                  {post.series && (
-                    <Badge variant="outline" className="text-xs">
-                      {post.series}
-                    </Badge>
+        {posts && posts.length > 0 ? (
+          posts.map((post) => (
+            <Card key={post.id} className="transition-shadow hover:shadow-md">
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100">
+                  {post.platform === "instagram" && (
+                    <span className="text-sm font-bold text-pink-500">IG</span>
+                  )}
+                  {post.platform === "facebook" && (
+                    <Globe className="h-5 w-5 text-blue-600" />
+                  )}
+                  {post.platform === "tiktok" && (
+                    <span className="text-sm font-bold">TT</span>
                   )}
                 </div>
-              </div>
-              <Badge className={STATUS_COLORS[post.status]}>
-                {STATUS_LABELS[post.status]}
-              </Badge>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{post.title || "Ohne Titel"}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    {post.scheduled_at && (
+                      <span>{new Date(post.scheduled_at).toLocaleDateString("de-CH")}</span>
+                    )}
+                    <span className="capitalize">{post.post_type}</span>
+                    {post.event && (
+                      <Badge variant="outline" className="text-xs">
+                        {post.event.title}
+                      </Badge>
+                    )}
+                    {post.series_order && (
+                      <Badge variant="outline" className="text-xs">
+                        Teil {post.series_order}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <Badge className={STATUS_COLORS[post.status] || ""}>
+                  {STATUS_LABELS[post.status] || post.status}
+                </Badge>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-gray-400">
+                Noch keine Posts geplant.{" "}
+                <Link href="/social/neu" className="text-[#C5A572] hover:underline">
+                  Ersten Post erstellen
+                </Link>
+              </p>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
     </div>
   )
