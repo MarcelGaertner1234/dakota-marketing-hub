@@ -49,6 +49,34 @@ export async function createLead(formData: FormData): Promise<{ success: true } 
   }
 }
 
+export async function updateLead(
+  id: string,
+  data: {
+    name?: string
+    company?: string | null
+    email?: string | null
+    phone?: string | null
+    address?: string | null
+    notes?: string | null
+    lead_type?: string
+    tags?: string[] | null
+  }
+): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = createServerClient()
+  try {
+    const { error } = await supabase
+      .from("leads")
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq("id", id)
+    if (error) return { success: false, error: error.message }
+    revalidatePath("/leads")
+    revalidatePath(`/leads/${id}`)
+    return { success: true }
+  } catch {
+    return { success: false, error: "Unbekannter Fehler beim Aktualisieren" }
+  }
+}
+
 export async function updateLeadStatus(id: string, status: string) {
   const supabase = createServerClient()
   const { error } = await supabase
