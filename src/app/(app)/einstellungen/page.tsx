@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getTeamMembers } from "@/lib/actions/team"
 import TeamSettings from "./team-settings"

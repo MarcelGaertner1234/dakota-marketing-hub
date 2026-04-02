@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { YearCalendar } from "@/components/kalender/year-calendar"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
