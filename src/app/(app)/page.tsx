@@ -1,71 +1,102 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Calendar, Users, Lightbulb, Star, CheckCircle2, Clock } from "lucide-react"
+import Link from "next/link"
+import { createServerClient } from "@/lib/supabase/server"
+import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS, TASK_PRIORITY_LABELS } from "@/lib/constants"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = createServerClient()
+
+  // Parallel data fetching
+  const now = new Date().toISOString().split("T")[0]
+  const monthEnd = new Date()
+  monthEnd.setMonth(monthEnd.getMonth() + 1)
+  const monthEndStr = monthEnd.toISOString().split("T")[0]
+
+  const [eventsRes, leadsRes, conceptsRes, reviewsRes, tasksRes, upcomingRes] =
+    await Promise.all([
+      supabase
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .gte("start_date", now)
+        .lte("start_date", monthEndStr),
+      supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .not("status", "eq", "verloren"),
+      supabase
+        .from("concepts")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true),
+      supabase
+        .from("reviews")
+        .select("id", { count: "exact", head: true }),
+      supabase
+        .from("tasks")
+        .select("*, assigned_member:team_members(name, color), event:events(id, title)")
+        .in("status", ["todo", "in_progress"])
+        .order("due_date", { ascending: true, nullsFirst: false })
+        .limit(5),
+      supabase
+        .from("events")
+        .select("*")
+        .gte("start_date", now)
+        .order("start_date")
+        .limit(5),
+    ])
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#2C2C2C]">Dashboard</h1>
         <p className="text-gray-500">Dakota Air Lounge — Marketing Hub</p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-[#C5A572]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Events diesen Monat
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Events diesen Monat</CardTitle>
             <Calendar className="h-4 w-4 text-[#C5A572]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">—</div>
-            <p className="text-xs text-gray-500">Supabase verbinden</p>
+            <div className="text-2xl font-bold">{eventsRes.count ?? 0}</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Aktive Leads
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Aktive Leads</CardTitle>
             <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">—</div>
-            <p className="text-xs text-gray-500">Supabase verbinden</p>
+            <div className="text-2xl font-bold">{leadsRes.count ?? 0}</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-purple-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Konzepte
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Konzepte</CardTitle>
             <Lightbulb className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
-            <p className="text-xs text-gray-500">Aktive Konzepte</p>
+            <div className="text-2xl font-bold">{conceptsRes.count ?? 0}</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-yellow-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Bewertungen
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Bewertungen</CardTitle>
             <Star className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">—</div>
-            <p className="text-xs text-gray-500">Supabase verbinden</p>
+            <div className="text-2xl font-bold">{reviewsRes.count ?? 0}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Two Column Layout */}
+      {/* Two columns */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Upcoming Events */}
         <Card>
@@ -75,10 +106,40 @@ export default function DashboardPage() {
               Nächste Events
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">
-              Verbinde Supabase um Events zu sehen.
-            </p>
+          <CardContent className="space-y-3">
+            {upcomingRes.data && upcomingRes.data.length > 0 ? (
+              upcomingRes.data.map((event) => (
+                <Link key={event.id} href={`/kalender/${event.id}`}>
+                  <div className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50">
+                    <div
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: EVENT_TYPE_COLORS[event.event_type as keyof typeof EVENT_TYPE_COLORS] || "#6B7280" }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{event.title}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(event.start_date).toLocaleDateString("de-CH", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                        })}
+                        {event.start_time && ` · ${event.start_time.slice(0, 5)}`}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {EVENT_TYPE_LABELS[event.event_type as keyof typeof EVENT_TYPE_LABELS] || event.event_type}
+                    </Badge>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-4">
+                Keine anstehenden Events.{" "}
+                <Link href="/kalender/neu" className="text-[#C5A572] hover:underline">
+                  Event erstellen
+                </Link>
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -90,10 +151,44 @@ export default function DashboardPage() {
               Offene Aufgaben
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">
-              Verbinde Supabase um Aufgaben zu sehen.
-            </p>
+          <CardContent className="space-y-3">
+            {tasksRes.data && tasksRes.data.length > 0 ? (
+              tasksRes.data.map((task) => (
+                <div key={task.id} className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {task.event && (
+                        <Link
+                          href={`/kalender/${task.event.id}`}
+                          className="text-xs text-[#C5A572] hover:underline truncate"
+                        >
+                          {task.event.title}
+                        </Link>
+                      )}
+                      {task.due_date && (
+                        <span className="text-xs text-gray-400">
+                          Fällig: {new Date(task.due_date).toLocaleDateString("de-CH")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {task.assigned_member && (
+                    <div
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                      style={{ backgroundColor: task.assigned_member.color }}
+                      title={task.assigned_member.name}
+                    >
+                      {task.assigned_member.name[0]}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-4">
+                Keine offenen Aufgaben.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

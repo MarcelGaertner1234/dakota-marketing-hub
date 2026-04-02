@@ -2,8 +2,11 @@ import { YearCalendar } from "@/components/kalender/year-calendar"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
+import { getEvents, getHolidays } from "@/lib/actions/events"
 
-export default function KalenderPage() {
+export default async function KalenderPage() {
+  const [events, holidays] = await Promise.all([getEvents(), getHolidays()])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -19,7 +22,7 @@ export default function KalenderPage() {
         </Link>
       </div>
 
-      <YearCalendar />
+      <YearCalendar events={events || []} holidays={holidays || []} />
     </div>
   )
 }
