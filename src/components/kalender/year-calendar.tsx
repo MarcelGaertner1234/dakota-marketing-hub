@@ -217,7 +217,7 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
 
       {/* Day Detail Dialog */}
       <Dialog open={!!selectedDate} onOpenChange={(open) => { if (!open) setSelectedDate(null) }}>
-        <DialogContent className="sm:max-w-lg" showCloseButton={false}>
+        <DialogContent className="!sm:max-w-lg !max-w-lg" showCloseButton={false}>
           {selectedDateObj && (
             <>
               <DialogHeader>
