@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         .select("id", { count: "exact", head: true }),
       supabase
         .from("tasks")
-        .select("*, assigned_member:team_members(name, color), event:events(id, title)")
+        .select("*, assigned_member:team_members!tasks_assigned_to_fkey(name, color), event:events!tasks_event_id_fkey(id, title)")
         .in("status", ["todo", "in_progress"])
         .order("due_date", { ascending: true, nullsFirst: false })
         .limit(5),

@@ -67,9 +67,9 @@ function DayDetailPanel({
   const holidayEvents = events.filter((e) => e.id.startsWith("holiday-"))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] sm:pt-[15vh]">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] sm:pt-[15vh]">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
       <div className="relative z-10 w-full max-w-lg mx-4 rounded-xl border bg-white shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">

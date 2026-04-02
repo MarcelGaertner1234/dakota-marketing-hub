@@ -25,7 +25,7 @@ export async function getEvent(id: string) {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from("events")
-    .select("*, concept:concepts(*), tasks(*, assigned_member:team_members(*)), images:event_images(*)")
+    .select("*, concept:concepts(*), tasks(*, assigned_member:team_members!tasks_assigned_to_fkey(*)), images:event_images(*)")
     .eq("id", id)
     .single()
   if (error) throw error

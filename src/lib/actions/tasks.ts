@@ -7,7 +7,7 @@ export async function getTasksForEvent(eventId: string) {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from("tasks")
-    .select("*, assigned_member:team_members(*)")
+    .select("*, assigned_member:team_members!tasks_assigned_to_fkey(*)")
     .eq("event_id", eventId)
     .order("sort_order")
   if (error) throw error
@@ -18,7 +18,7 @@ export async function getAllOpenTasks() {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from("tasks")
-    .select("*, assigned_member:team_members(*), event:events(id, title)")
+    .select("*, assigned_member:team_members!tasks_assigned_to_fkey(*), event:events!tasks_event_id_fkey(id, title)")
     .in("status", ["todo", "in_progress"])
     .order("due_date", { ascending: true, nullsFirst: false })
     .limit(20)
