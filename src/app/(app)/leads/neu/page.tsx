@@ -11,7 +11,10 @@ import { redirect } from "next/navigation"
 export default function NeuerLeadPage() {
   async function handleCreate(formData: FormData) {
     "use server"
-    await createLead(formData)
+    const result = await createLead(formData)
+    if (!result.success) {
+      throw new Error(result.error)
+    }
     redirect("/leads")
   }
 

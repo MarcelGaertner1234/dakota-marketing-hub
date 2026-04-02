@@ -66,14 +66,3 @@ export async function createReview(data: {
   if (error) throw error
   return goodyCode
 }
-
-export async function createReviewToken() {
-  const supabase = createServerClient()
-  const token = Math.random().toString(36).substring(2, 10)
-  // Pre-create the review record with just the token
-  const { error } = await supabase.from("reviews").insert({
-    token,
-  })
-  if (error) throw error
-  return token
-}

@@ -63,7 +63,7 @@ export default async function EventDetailPage({
       {isInLeadTime && (
         <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4">
           <p className="font-medium text-yellow-800">
-            Noch {daysUntilEvent} Tage bis zum Event — Vorbereitungen starten!
+            Noch {Math.max(0, daysUntilEvent)} Tage bis zum Event — Vorbereitungen starten!
           </p>
         </div>
       )}

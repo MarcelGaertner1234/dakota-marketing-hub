@@ -7,7 +7,7 @@ export async function getLeads() {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from("leads")
-    .select("*")
+    .select("id, name, company, lead_type, status, tags")
     .order("created_at", { ascending: false })
   if (error) throw error
   return data
@@ -24,24 +24,29 @@ export async function getLead(id: string) {
   return data
 }
 
-export async function createLead(formData: FormData) {
+export async function createLead(formData: FormData): Promise<{ success: true } | { success: false; error: string }> {
   const supabase = createServerClient()
   const tags = (formData.get("tags") as string)
     ?.split(",")
     .map((t) => t.trim())
     .filter(Boolean) || []
-  const { error } = await supabase.from("leads").insert({
-    name: formData.get("name") as string,
-    company: (formData.get("company") as string) || null,
-    lead_type: (formData.get("lead_type") as string) || "privatperson",
-    email: (formData.get("email") as string) || null,
-    phone: (formData.get("phone") as string) || null,
-    address: (formData.get("address") as string) || null,
-    notes: (formData.get("notes") as string) || null,
-    tags: tags.length > 0 ? tags : null,
-  })
-  if (error) throw error
-  revalidatePath("/leads")
+  try {
+    const { error } = await supabase.from("leads").insert({
+      name: formData.get("name") as string,
+      company: (formData.get("company") as string) || null,
+      lead_type: (formData.get("lead_type") as string) || "privatperson",
+      email: (formData.get("email") as string) || null,
+      phone: (formData.get("phone") as string) || null,
+      address: (formData.get("address") as string) || null,
+      notes: (formData.get("notes") as string) || null,
+      tags: tags.length > 0 ? tags : null,
+    })
+    if (error) return { success: false, error: error.message }
+    revalidatePath("/leads")
+    return { success: true }
+  } catch {
+    return { success: false, error: "Unbekannter Fehler beim Speichern" }
+  }
 }
 
 export async function updateLeadStatus(id: string, status: string) {

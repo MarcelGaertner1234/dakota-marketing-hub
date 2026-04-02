@@ -1,7 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
-import { updateLeadStatus } from "@/lib/actions/leads"
+import { updateLeadStatus, addLeadActivity } from "@/lib/actions/leads"
 import { LEAD_STATUS_LABELS } from "@/lib/constants"
 import type { LeadStatus } from "@/types/database"
 
@@ -25,8 +25,21 @@ export function LeadStatusSelect({
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newStatus = e.target.value as LeadStatus
+    const oldStatus = currentStatus
     startTransition(async () => {
       await updateLeadStatus(leadId, newStatus)
+      try {
+        const formData = new FormData()
+        formData.set("lead_id", leadId)
+        formData.set("activity_type", "status_change")
+        formData.set(
+          "description",
+          `Status geändert: ${LEAD_STATUS_LABELS[oldStatus]} → ${LEAD_STATUS_LABELS[newStatus]}`
+        )
+        await addLeadActivity(formData)
+      } catch {
+        // Activity log failed — status was already updated, no rollback
+      }
     })
   }
 

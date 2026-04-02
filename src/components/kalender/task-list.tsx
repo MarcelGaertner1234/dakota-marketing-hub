@@ -34,7 +34,7 @@ export function TaskList({
   function handleToggle(taskId: string, currentStatus: string) {
     const newStatus = currentStatus === "done" ? "todo" : "done"
     startTransition(async () => {
-      await updateTaskStatus(taskId, newStatus)
+      await updateTaskStatus(taskId, newStatus, eventId)
       router.refresh()
     })
   }

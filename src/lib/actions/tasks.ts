@@ -42,7 +42,7 @@ export async function createTask(formData: FormData) {
   revalidatePath("/")
 }
 
-export async function updateTaskStatus(taskId: string, status: string) {
+export async function updateTaskStatus(taskId: string, status: string, eventId?: string) {
   const supabase = createServerClient()
   const update: Record<string, unknown> = {
     status,
@@ -51,12 +51,17 @@ export async function updateTaskStatus(taskId: string, status: string) {
   if (status === "done") {
     update.completed_at = new Date().toISOString()
   }
-  // Get event_id before updating
-  const { data: task } = await supabase
-    .from("tasks")
-    .select("event_id")
-    .eq("id", taskId)
-    .single()
+
+  let resolvedEventId = eventId
+  if (!resolvedEventId) {
+    // Fallback: fetch event_id if not provided by caller
+    const { data: task } = await supabase
+      .from("tasks")
+      .select("event_id")
+      .eq("id", taskId)
+      .single()
+    resolvedEventId = task?.event_id ?? undefined
+  }
 
   const { error } = await supabase
     .from("tasks")
@@ -64,7 +69,7 @@ export async function updateTaskStatus(taskId: string, status: string) {
     .eq("id", taskId)
   if (error) throw error
 
-  if (task?.event_id) revalidatePath(`/kalender/${task.event_id}`)
+  if (resolvedEventId) revalidatePath(`/kalender/${resolvedEventId}`)
   revalidatePath("/kalender")
   revalidatePath("/")
 }

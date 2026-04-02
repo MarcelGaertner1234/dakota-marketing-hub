@@ -31,6 +31,7 @@ import {
 import Link from "next/link"
 import { updateSocialPost } from "@/lib/actions/social"
 import { useRouter } from "next/navigation"
+import { PostStatusSelect } from "./post-status-select"
 
 interface PostData {
   id: string
@@ -59,13 +60,6 @@ const PLATFORM_CONFIG: Record<string, { label: string; color: string; Icon: type
   facebook: { label: "Facebook", color: "#1877F2", Icon: Globe },
   tiktok: { label: "TikTok", color: "#000", Icon: Music2 },
 }
-
-const STATUS_OPTIONS = [
-  { value: "draft", label: "Entwurf", color: "#6B7280" },
-  { value: "planned", label: "Geplant", color: "#3B82F6" },
-  { value: "ready", label: "Bereit", color: "#10B981" },
-  { value: "published", label: "Veröffentlicht", color: "#8B5CF6" },
-]
 
 export function PostDetail({ post }: { post: PostData }) {
   const [isEditing, setIsEditing] = useState(false)
@@ -101,13 +95,6 @@ export function PostDetail({ post }: { post: PostData }) {
   }, [folder])
 
   useEffect(() => { loadImages() }, [loadImages])
-
-  function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    startTransition(async () => {
-      await updateSocialPost(post.id, { status: e.target.value })
-      router.refresh()
-    })
-  }
 
   function handleSave(formData: FormData) {
     const hashtags = (formData.get("hashtags") as string)
@@ -197,16 +184,7 @@ export function PostDetail({ post }: { post: PostData }) {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-gray-500">Status</p>
-            <select
-              value={post.status}
-              onChange={handleStatusChange}
-              disabled={isPending}
-              className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium focus:border-[#C5A572] focus:outline-none focus:ring-1 focus:ring-[#C5A572]"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <PostStatusSelect postId={post.id} currentStatus={post.status} />
           </CardContent>
         </Card>
         <Card>

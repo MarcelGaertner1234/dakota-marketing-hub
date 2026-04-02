@@ -47,6 +47,41 @@ export async function createConcept(formData: FormData) {
   revalidatePath("/konzepte")
 }
 
+export async function updateConcept(id: string, formData: FormData) {
+  const supabase = createServerClient()
+  const channels = (formData.get("channels") as string)
+    ?.split(",")
+    .map((c) => c.trim())
+    .filter(Boolean) || []
+  const { error } = await supabase
+    .from("concepts")
+    .update({
+      name: (formData.get("name") as string) || undefined,
+      description: (formData.get("description") as string) || null,
+      description_berndeutsch: (formData.get("description_berndeutsch") as string) || null,
+      target_audience: (formData.get("target_audience") as string) || null,
+      channels: channels.length > 0 ? channels : null,
+      menu_description: (formData.get("menu_description") as string) || null,
+      price_range: (formData.get("price_range") as string) || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+  if (error) throw error
+  revalidatePath(`/konzepte/${id}`)
+  revalidatePath("/konzepte")
+}
+
+export async function updateConceptImage(id: string, imageUrl: string | null) {
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("concepts")
+    .update({ image_url: imageUrl, updated_at: new Date().toISOString() })
+    .eq("id", id)
+  if (error) throw error
+  revalidatePath(`/konzepte/${id}`)
+  revalidatePath("/konzepte")
+}
+
 export async function getTeamMembers() {
   const supabase = createServerClient()
   const { data, error } = await supabase
