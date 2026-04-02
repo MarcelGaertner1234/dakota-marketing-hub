@@ -17,7 +17,7 @@ import {
   Monitor,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 
 const NAV_ITEMS = [
@@ -33,7 +33,10 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
+
+  useEffect(() => { setMounted(true) }, [])
 
   function cycleTheme() {
     if (theme === "light") setTheme("dark")
@@ -115,14 +118,16 @@ export function Sidebar() {
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
             title={`Theme: ${theme === "light" ? "Hell" : theme === "dark" ? "Dunkel" : "System"}`}
           >
-            {theme === "dark" ? (
+            {!mounted ? (
+              <Monitor className="h-5 w-5 shrink-0" />
+            ) : theme === "dark" ? (
               <Moon className="h-5 w-5 shrink-0" />
             ) : theme === "light" ? (
               <Sun className="h-5 w-5 shrink-0" />
             ) : (
               <Monitor className="h-5 w-5 shrink-0" />
             )}
-            {theme === "dark" ? "Dunkel" : theme === "light" ? "Hell" : "System"}
+            {!mounted ? "System" : theme === "dark" ? "Dunkel" : theme === "light" ? "Hell" : "System"}
           </button>
           <div>
             <p className="text-xs text-gray-500">Dakota Air Lounge</p>
