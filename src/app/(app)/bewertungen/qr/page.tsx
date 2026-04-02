@@ -19,7 +19,7 @@ export default function QRGeneratorPage() {
   const [useProduction, setUseProduction] = useState(true)
   const printRef = useRef<HTMLDivElement>(null)
 
-  const baseUrl = useProduction ? PRODUCTION_URL : "http://localhost:3003"
+  const baseUrl = useProduction ? PRODUCTION_URL : "http://localhost:3002"
 
   useEffect(() => {
     if (tokens.length === 0) {

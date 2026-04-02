@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { getLeads } from "@/lib/actions/leads"
-import { getTeamMembers } from "@/lib/actions/concepts"
+import { getTeamMembers } from "@/lib/actions/team"
 import { KanbanBoard } from "@/components/leads/kanban-board"
 
 export default async function LeadsPage() {

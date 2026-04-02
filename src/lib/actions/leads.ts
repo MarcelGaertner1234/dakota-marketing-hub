@@ -85,6 +85,7 @@ export async function updateLeadStatus(id: string, status: string) {
     .eq("id", id)
   if (error) throw error
   revalidatePath("/leads")
+  revalidatePath(`/leads/${id}`)
 }
 
 // ============================================

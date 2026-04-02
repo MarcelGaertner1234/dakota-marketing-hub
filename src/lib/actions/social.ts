@@ -58,6 +58,13 @@ export async function updateSocialPost(id: string, data: Record<string, unknown>
   revalidatePath("/social")
 }
 
+export async function deleteSocialPost(id: string) {
+  const supabase = createServerClient()
+  const { error } = await supabase.from("social_posts").delete().eq("id", id)
+  if (error) throw error
+  revalidatePath("/social")
+}
+
 export async function updatePostStatus(id: string, status: string) {
   const supabase = createServerClient()
   const update: Record<string, unknown> = { status, updated_at: new Date().toISOString() }

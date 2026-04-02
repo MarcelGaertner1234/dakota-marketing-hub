@@ -1,5 +1,6 @@
 import { getEvent } from "@/lib/actions/events"
-import { getConcepts, getTeamMembers } from "@/lib/actions/concepts"
+import { getConcepts } from "@/lib/actions/concepts"
+import { getTeamMembers } from "@/lib/actions/team"
 import { getEventLeads } from "@/lib/actions/leads"
 import { EventDetail } from "./event-detail"
 import { notFound } from "next/navigation"

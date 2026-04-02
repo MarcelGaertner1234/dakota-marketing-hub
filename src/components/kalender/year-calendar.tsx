@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight, Plus, Calendar, MapPin, Clock, Repeat } from
 import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from "@/lib/constants"
 import type { EventType } from "@/types/database"
 import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
 
 /** Parse a date-only string (YYYY-MM-DD) as local midnight, avoiding UTC off-by-one. */
 function parseDateLocal(dateStr: string): Date {
@@ -54,6 +55,7 @@ interface CalendarEvent {
 interface YearCalendarProps {
   events: CalendarEvent[]
   holidays: Array<{ name: string; date: string }>
+  initialYear: number
 }
 
 // ============================================================
@@ -172,9 +174,15 @@ function MonthGrid({
 // ============================================================
 // Year Calendar
 // ============================================================
-export function YearCalendar({ events, holidays }: YearCalendarProps) {
-  const [year, setYear] = useState(() => new Date().getFullYear())
+export function YearCalendar({ events, holidays, initialYear }: YearCalendarProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const year = initialYear
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+
+  function changeYear(newYear: number) {
+    router.push(`${pathname}?year=${newYear}`)
+  }
 
   const yearEvents = events.filter((e) => {
     const [y] = e.start_date.split("-").map(Number)
@@ -207,11 +215,11 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setYear(year - 1)}>
+          <Button variant="outline" size="icon" onClick={() => changeYear(year - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-xl font-bold text-[#2C2C2C] dark:text-gray-100">{year}</span>
-          <Button variant="outline" size="icon" onClick={() => setYear(year + 1)}>
+          <Button variant="outline" size="icon" onClick={() => changeYear(year + 1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -234,7 +242,7 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
 
       {/* Day Detail Dialog */}
       <Dialog open={!!selectedDate} onOpenChange={(open) => { if (!open) setSelectedDate(null) }}>
-        <DialogContent className="!sm:max-w-lg !max-w-lg" showCloseButton={false}>
+        <DialogContent className="sm:!max-w-lg !max-w-lg" showCloseButton={false}>
           {selectedDateObj && (
             <>
               <DialogHeader>

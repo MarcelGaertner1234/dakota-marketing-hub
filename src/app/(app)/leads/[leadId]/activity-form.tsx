@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -8,6 +9,7 @@ import { addLeadActivity } from "@/lib/actions/leads"
 
 export function ActivityForm({ leadId }: { leadId: string }) {
   const formRef = useRef<HTMLFormElement>(null)
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
@@ -17,6 +19,7 @@ export function ActivityForm({ leadId }: { leadId: string }) {
       try {
         await addLeadActivity(formData)
         formRef.current?.reset()
+        router.refresh()
         setFeedback({ type: "success", message: "Aktivität gespeichert." })
         setTimeout(() => setFeedback(null), 3000)
       } catch {

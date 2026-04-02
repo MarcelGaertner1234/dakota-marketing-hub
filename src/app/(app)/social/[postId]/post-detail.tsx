@@ -29,7 +29,7 @@ import {
   FileText,
 } from "lucide-react"
 import Link from "next/link"
-import { updateSocialPost } from "@/lib/actions/social"
+import { updateSocialPost, deleteSocialPost } from "@/lib/actions/social"
 import { useRouter } from "next/navigation"
 import { PostStatusSelect } from "./post-status-select"
 
@@ -63,6 +63,7 @@ const PLATFORM_CONFIG: Record<string, { label: string; color: string; Icon: type
 
 export function PostDetail({ post }: { post: PostData }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isUploading, setIsUploading] = useState(false)
   const [images, setImages] = useState<StorageFile[]>([])
@@ -170,13 +171,25 @@ export function PostDetail({ post }: { post: PostData }) {
             {post.post_type}{post.series_order ? ` · Teil ${post.series_order}` : ""}
           </p>
         </div>
-        <Button
-          variant={isEditing ? "outline" : "default"}
-          className={isEditing ? "" : "bg-[#C5A572] hover:bg-[#A08050]"}
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          {isEditing ? <><X className="mr-2 h-4 w-4" /> Abbrechen</> : <><Pencil className="mr-2 h-4 w-4" /> Bearbeiten</>}
-        </Button>
+        <div className="flex gap-2">
+          {!isEditing && (
+            <Button
+              variant="outline"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Löschen
+            </Button>
+          )}
+          <Button
+            variant={isEditing ? "outline" : "default"}
+            className={isEditing ? "" : "bg-[#C5A572] hover:bg-[#A08050]"}
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? <><X className="mr-2 h-4 w-4" /> Abbrechen</> : <><Pencil className="mr-2 h-4 w-4" /> Bearbeiten</>}
+          </Button>
+        </div>
       </div>
 
       {/* Status + Deadline + Platform */}
@@ -399,6 +412,36 @@ export function PostDetail({ post }: { post: PostData }) {
           {post.published_at && <span>Veröffentlicht: {new Date(post.published_at).toLocaleDateString("de-CH")}</span>}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl max-w-sm mx-4">
+            <h3 className="text-lg font-bold text-[#2C2C2C] dark:text-gray-100">Post löschen?</h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              &quot;{post.title || "Ohne Titel"}&quot; wird unwiderruflich gelöscht.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isPending}>
+                Abbrechen
+              </Button>
+              <Button
+                className="bg-red-500 hover:bg-red-600 text-white"
+                disabled={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    await deleteSocialPost(post.id)
+                    router.push("/social")
+                  })
+                }}
+              >
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                Löschen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxUrl && (

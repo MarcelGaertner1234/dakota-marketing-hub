@@ -4,8 +4,9 @@ import { Plus } from "lucide-react"
 import Link from "next/link"
 import { getEvents, getHolidays } from "@/lib/actions/events"
 
-export default async function KalenderPage() {
-  const currentYear = new Date().getFullYear()
+export default async function KalenderPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
+  const params = await searchParams
+  const currentYear = params.year ? parseInt(params.year) : new Date().getFullYear()
   const [events, holidays] = await Promise.all([getEvents(currentYear), getHolidays(currentYear)])
 
   return (
@@ -23,7 +24,7 @@ export default async function KalenderPage() {
         </Link>
       </div>
 
-      <YearCalendar events={events || []} holidays={holidays || []} />
+      <YearCalendar events={events || []} holidays={holidays || []} initialYear={currentYear} />
     </div>
   )
 }

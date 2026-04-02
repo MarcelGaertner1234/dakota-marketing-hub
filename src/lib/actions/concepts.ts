@@ -82,12 +82,3 @@ export async function updateConceptImage(id: string, imageUrl: string | null) {
   revalidatePath("/konzepte")
 }
 
-export async function getTeamMembers() {
-  const supabase = createServerClient()
-  const { data, error } = await supabase
-    .from("team_members")
-    .select("*")
-    .order("name")
-  if (error) throw error
-  return data
-}

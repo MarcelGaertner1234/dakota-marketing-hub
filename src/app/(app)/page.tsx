@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Users, Lightbulb, Star, CheckCircle2, Clock } from "lucide-react"
 import Link from "next/link"
 import { createServerClient } from "@/lib/supabase/server"
-import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS, TASK_PRIORITY_LABELS } from "@/lib/constants"
+import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from "@/lib/constants"
+import { getReviewStats } from "@/lib/actions/reviews"
 
 export default async function DashboardPage() {
   const supabase = createServerClient()
@@ -14,7 +15,7 @@ export default async function DashboardPage() {
   monthEnd.setMonth(monthEnd.getMonth() + 1)
   const monthEndStr = monthEnd.toISOString().split("T")[0]
 
-  const [eventsRes, leadsRes, conceptsRes, reviewsRes, tasksRes, upcomingRes] =
+  const [eventsRes, leadsRes, conceptsRes, reviewStats, tasksRes, upcomingRes] =
     await Promise.all([
       supabase
         .from("events")
@@ -29,9 +30,7 @@ export default async function DashboardPage() {
         .from("concepts")
         .select("id", { count: "exact", head: true })
         .eq("is_active", true),
-      supabase
-        .from("reviews")
-        .select("id", { count: "exact", head: true }),
+      getReviewStats(),
       supabase
         .from("tasks")
         .select("*, assigned_member:team_members!tasks_assigned_to_fkey(name, color), event:events!tasks_event_id_fkey(id, title)")
@@ -91,7 +90,12 @@ export default async function DashboardPage() {
             <Star className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reviewsRes.count ?? 0}</div>
+            <div className="text-2xl font-bold">{reviewStats.total}</div>
+            {reviewStats.total > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Ø {(((reviewStats.food || 0) + (reviewStats.ambience || 0) + (reviewStats.service || 0)) / 3).toFixed(1)} / 5
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

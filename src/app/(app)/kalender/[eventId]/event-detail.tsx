@@ -1,15 +1,17 @@
 "use client"
 
-import { useState, useTransition } from "react"
+/* eslint-disable @next/next/no-img-element */
+
+import { useState, useTransition, useRef, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, MapPin, Clock, Calendar, Pencil, Save, X, Loader2, Users, Repeat } from "lucide-react"
+import { ArrowLeft, MapPin, Clock, Calendar, Pencil, Save, X, Loader2, Users, Repeat, Trash2, Upload, ImageIcon, Plus } from "lucide-react"
 import Link from "next/link"
-import { updateEvent } from "@/lib/actions/events"
+import { updateEvent, deleteEvent } from "@/lib/actions/events"
 import { useRouter } from "next/navigation"
 import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS, LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants"
 import { TaskList } from "@/components/kalender/task-list"
@@ -23,6 +25,12 @@ const RECURRENCE_LABELS: Record<RecurrenceType, string> = {
   biweekly: "Alle 2 Wochen",
   monthly: "Monatlich",
   yearly: "Jährlich",
+}
+
+interface StorageFile {
+  name: string
+  path: string
+  url: string
 }
 
 interface ConceptOption {
@@ -84,8 +92,15 @@ export function EventDetail({
   linkedLeads?: LinkedLead[]
 }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [isUploading, setIsUploading] = useState(false)
+  const [eventImages, setEventImages] = useState<StorageFile[]>([])
+  const [deletingPath, setDeletingPath] = useState<string | null>(null)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const folder = `event-${event.id.substring(0, 8)}`
 
   const leadTimeDays = event.lead_time_days || 28
 
@@ -109,6 +124,56 @@ export function EventDetail({
       setIsEditing(false)
       router.refresh()
     })
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      await deleteEvent(event.id)
+      router.push("/kalender")
+    })
+  }
+
+  const loadImages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/storage?bucket=event-images&folder=${folder}`)
+      const data = await res.json()
+      if (data.files) setEventImages(data.files)
+    } catch { /* ignore */ }
+  }, [folder])
+
+  useEffect(() => { loadImages() }, [loadImages])
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files) return
+    setIsUploading(true)
+    try {
+      for (const file of Array.from(files)) {
+        const fd = new FormData()
+        fd.set("file", file)
+        fd.set("bucket", "event-images")
+        fd.set("folder", folder)
+        await fetch("/api/upload", { method: "POST", body: fd })
+      }
+      await loadImages()
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  async function handleDeleteImage(file: StorageFile) {
+    setDeletingPath(file.path)
+    try {
+      await fetch("/api/storage", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bucket: "event-images", path: file.path }),
+      })
+      await loadImages()
+    } finally {
+      setDeletingPath(null)
+    }
   }
 
   return (
@@ -137,21 +202,33 @@ export function EventDetail({
             <p className="mt-1 text-gray-500 dark:text-gray-400">{event.description}</p>
           )}
         </div>
-        <Button
-          variant={isEditing ? "outline" : "default"}
-          className={isEditing ? "" : "bg-[#C5A572] hover:bg-[#A08050]"}
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          {isEditing ? (
-            <>
-              <X className="mr-2 h-4 w-4" /> Abbrechen
-            </>
-          ) : (
-            <>
-              <Pencil className="mr-2 h-4 w-4" /> Bearbeiten
-            </>
+        <div className="flex gap-2">
+          {!isEditing && (
+            <Button
+              variant="outline"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Löschen
+            </Button>
           )}
-        </Button>
+          <Button
+            variant={isEditing ? "outline" : "default"}
+            className={isEditing ? "" : "bg-[#C5A572] hover:bg-[#A08050]"}
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? (
+              <>
+                <X className="mr-2 h-4 w-4" /> Abbrechen
+              </>
+            ) : (
+              <>
+                <Pencil className="mr-2 h-4 w-4" /> Bearbeiten
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Warning Banner */}
@@ -428,6 +505,63 @@ export function EventDetail({
               </CardContent>
             </Card>
           )}
+
+          {/* Event-Bilder */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Event-Bilder ({eventImages.length})
+                </div>
+              </CardTitle>
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                {isUploading ? "Hochladen..." : "Bild hinzufügen"}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {eventImages.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {eventImages.map((file) => (
+                    <div key={file.path} className="group relative">
+                      <div className="relative overflow-hidden rounded-lg border cursor-pointer" onClick={() => setLightboxUrl(file.url)}>
+                        <img src={file.url} alt={file.name} className="h-36 w-full object-cover" />
+                        <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteImage(file) }}
+                            disabled={deletingPath === file.path}
+                            className="rounded bg-red-500/90 p-1.5 text-white hover:bg-red-600"
+                          >
+                            {deletingPath === file.path ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-36 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
+                  >
+                    <Upload className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Hinzufügen</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
+                >
+                  {isUploading ? <Loader2 className="h-6 w-6 animate-spin text-[#C5A572]" /> : <ImageIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />}
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{isUploading ? "Hochladen..." : "Event-Bilder hochladen"}</span>
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+            </CardContent>
+          </Card>
         </>
       )}
 
@@ -479,6 +613,41 @@ export function EventDetail({
       {/* Tasks (always visible) */}
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <TaskList eventId={event.id} tasks={(event.tasks as any) || []} teamMembers={teamMembers} />
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 cursor-pointer" onClick={() => setLightboxUrl(null)}>
+          <button type="button" onClick={() => setLightboxUrl(null)} className="absolute top-4 right-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/40 transition-colors">
+            <X className="h-6 w-6" />
+          </button>
+          <img src={lightboxUrl} alt="Vergrössert" className="max-h-[95vh] max-w-[95vw] object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl max-w-sm mx-4">
+            <h3 className="text-lg font-bold text-[#2C2C2C] dark:text-gray-100">Event löschen?</h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              &quot;{event.title}&quot; wird unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isPending}>
+                Abbrechen
+              </Button>
+              <Button
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={handleDelete}
+                disabled={isPending}
+              >
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                Löschen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
