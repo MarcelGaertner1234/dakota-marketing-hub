@@ -9,7 +9,12 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
-export default async function NeuesEventPage() {
+export default async function NeuesEventPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>
+}) {
+  const { date: prefillDate } = await searchParams
   const concepts = await getConcepts()
 
   async function handleCreate(formData: FormData) {
@@ -66,7 +71,7 @@ export default async function NeuesEventPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="start_date">Datum *</Label>
-                <Input id="start_date" name="start_date" type="date" required />
+                <Input id="start_date" name="start_date" type="date" required defaultValue={prefillDate || ""} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="start_time">Startzeit</Label>
