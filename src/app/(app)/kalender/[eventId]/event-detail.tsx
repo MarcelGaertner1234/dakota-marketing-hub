@@ -7,13 +7,23 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, MapPin, Clock, Calendar, Pencil, Save, X, Loader2 } from "lucide-react"
+import { ArrowLeft, MapPin, Clock, Calendar, Pencil, Save, X, Loader2, Users, Repeat } from "lucide-react"
 import Link from "next/link"
 import { updateEvent } from "@/lib/actions/events"
 import { useRouter } from "next/navigation"
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants"
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS, LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants"
 import { TaskList } from "@/components/kalender/task-list"
-import type { EventType } from "@/types/database"
+import { RecurrenceFields } from "@/components/kalender/recurrence-fields"
+import type { EventType, LeadStatus, RecurrenceType } from "@/types/database"
+
+const RECURRENCE_LABELS: Record<RecurrenceType, string> = {
+  none: "Keine",
+  daily: "Täglich",
+  weekly: "Wöchentlich",
+  biweekly: "Alle 2 Wochen",
+  monthly: "Monatlich",
+  yearly: "Jährlich",
+}
 
 interface ConceptOption {
   id: string
@@ -38,6 +48,9 @@ interface EventData {
   location: string | null
   lead_time_days: number
   concept_id: string | null
+  recurrence?: RecurrenceType | null
+  recurrence_end_date?: string | null
+  parent_event_id?: string | null
   concept?: { id: string; name: string } | null
   tasks?: Array<{
     id: string
@@ -51,14 +64,24 @@ interface EventData {
   }>
 }
 
+interface LinkedLead {
+  lead_id: string
+  event_id: string
+  status: string | null
+  notes: string | null
+  lead: { id: string; name: string; company: string | null; status: string; lead_type: string } | null
+}
+
 export function EventDetail({
   event,
   concepts,
   teamMembers,
+  linkedLeads = [],
 }: {
   event: EventData
   concepts: ConceptOption[]
   teamMembers: TeamMemberOption[]
+  linkedLeads?: LinkedLead[]
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -99,7 +122,7 @@ export function EventDetail({
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-[#2C2C2C]">{event.title}</h1>
+            <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">{event.title}</h1>
             <Badge
               style={{
                 backgroundColor:
@@ -111,7 +134,7 @@ export function EventDetail({
             </Badge>
           </div>
           {!isEditing && event.description && (
-            <p className="mt-1 text-gray-500">{event.description}</p>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">{event.description}</p>
           )}
         </div>
         <Button
@@ -133,8 +156,8 @@ export function EventDetail({
 
       {/* Warning Banner */}
       {isInLeadTime && (
-        <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4">
-          <p className="font-medium text-yellow-800">
+        <div className="rounded-lg border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-950/30 p-4">
+          <p className="font-medium text-yellow-800 dark:text-yellow-300">
             Noch {Math.max(0, daysUntilEvent)} Tage bis zum Event — Vorbereitungen
             starten!
           </p>
@@ -252,6 +275,12 @@ export function EventDetail({
                 </div>
               </div>
 
+              {/* Wiederholung */}
+              <RecurrenceFields
+                defaultRecurrence={(event.recurrence as RecurrenceType) || "none"}
+                defaultEndDate={event.recurrence_end_date}
+              />
+
               <div className="space-y-2">
                 <Label htmlFor="lead_time_days">Vorlaufzeit (Tage)</Label>
                 <Input
@@ -261,7 +290,7 @@ export function EventDetail({
                   defaultValue={event.lead_time_days || 28}
                   min={0}
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Wie viele Tage vorher soll eine Erinnerung erscheinen?
                 </p>
               </div>
@@ -299,7 +328,7 @@ export function EventDetail({
               <CardContent className="flex items-center gap-3 p-4">
                 <Calendar className="h-5 w-5 text-[#C5A572]" />
                 <div>
-                  <p className="text-xs text-gray-500">Datum</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Datum</p>
                   <p className="font-medium">
                     {parseDateLocal(event.start_date).toLocaleDateString("de-CH", {
                       weekday: "long",
@@ -316,7 +345,7 @@ export function EventDetail({
                 <CardContent className="flex items-center gap-3 p-4">
                   <Clock className="h-5 w-5 text-[#C5A572]" />
                   <div>
-                    <p className="text-xs text-gray-500">Uhrzeit</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Uhrzeit</p>
                     <p className="font-medium">
                       {event.start_time?.slice(0, 5) || "\u2014"}
                       {event.end_time && ` \u2013 ${event.end_time.slice(0, 5)}`}
@@ -329,7 +358,7 @@ export function EventDetail({
               <CardContent className="flex items-center gap-3 p-4">
                 <MapPin className="h-5 w-5 text-[#C5A572]" />
                 <div>
-                  <p className="text-xs text-gray-500">Ort</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Ort</p>
                   <p className="font-medium">
                     {event.location || "Dakota Air Lounge"}
                   </p>
@@ -338,12 +367,57 @@ export function EventDetail({
             </Card>
           </div>
 
+          {/* Recurrence Info */}
+          {event.recurrence && event.recurrence !== "none" && (
+            <Card>
+              <CardContent className="flex items-center gap-3 p-4">
+                <Repeat className="h-5 w-5 text-[#C5A572]" />
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Wiederholung</p>
+                  <p className="font-medium">
+                    {RECURRENCE_LABELS[event.recurrence]}
+                    {event.recurrence_end_date && (
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {" "}bis{" "}
+                        {new Date(event.recurrence_end_date + "T00:00:00").toLocaleDateString("de-CH", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Child Event Badge */}
+          {event.parent_event_id && (
+            <Card>
+              <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <Repeat className="h-5 w-5 text-[#C5A572]" />
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Serie</p>
+                    <p className="font-medium">Teil einer wiederkehrenden Serie</p>
+                  </div>
+                </div>
+                <Link href={`/kalender/${event.parent_event_id}`}>
+                  <Button variant="outline" size="sm">
+                    Ursprungsevent ansehen
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Concept Link */}
           {event.concept && (
             <Card>
               <CardContent className="flex items-center justify-between p-4">
                 <div>
-                  <p className="text-xs text-gray-500">Verkn\u00fcpftes Konzept</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Verkn\u00fcpftes Konzept</p>
                   <p className="font-medium">{event.concept.name}</p>
                 </div>
                 <Link href={`/konzepte/${event.concept.id}`}>
@@ -355,6 +429,51 @@ export function EventDetail({
             </Card>
           )}
         </>
+      )}
+
+      {/* Verknuepfte Leads */}
+      {linkedLeads.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-[#C5A572]" />
+              Verknuepfte Leads
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {linkedLeads.map((ll) =>
+                ll.lead ? (
+                  <div
+                    key={ll.lead_id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        className="text-[10px]"
+                        style={{
+                          backgroundColor: LEAD_STATUS_COLORS[ll.lead.status as LeadStatus],
+                          color: "white",
+                        }}
+                      >
+                        {LEAD_STATUS_LABELS[ll.lead.status as LeadStatus]}
+                      </Badge>
+                      <Link
+                        href={`/leads/${ll.lead.id}`}
+                        className="font-medium text-[#2C2C2C] dark:text-gray-100 hover:text-[#C5A572] hover:underline"
+                      >
+                        {ll.lead.name}
+                      </Link>
+                      {ll.lead.company && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">{ll.lead.company}</span>
+                      )}
+                    </div>
+                  </div>
+                ) : null
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Tasks (always visible) */}

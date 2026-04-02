@@ -36,6 +36,28 @@ export async function createSocialPost(formData: FormData) {
   revalidatePath("/social")
 }
 
+export async function getSocialPost(id: string) {
+  const supabase = createServerClient()
+  const { data, error } = await supabase
+    .from("social_posts")
+    .select("*, event:events(id, title, start_date), concept:concepts(id, name)")
+    .eq("id", id)
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateSocialPost(id: string, data: Record<string, unknown>) {
+  const supabase = createServerClient()
+  const { error } = await supabase.from("social_posts").update({
+    ...data,
+    updated_at: new Date().toISOString(),
+  }).eq("id", id)
+  if (error) throw error
+  revalidatePath(`/social/${id}`)
+  revalidatePath("/social")
+}
+
 export async function updatePostStatus(id: string, status: string) {
   const supabase = createServerClient()
   const update: Record<string, unknown> = { status, updated_at: new Date().toISOString() }

@@ -95,8 +95,8 @@ export function SocialBoard({ posts: initialPosts }: { posts: Post[] }) {
               className="flex items-center gap-2 rounded-lg border px-3 py-2 flex-1"
             >
               <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: config.color }} />
-              <span className="text-lg font-bold text-[#2C2C2C]">{count}</span>
-              <span className="text-xs text-gray-500">{config.label}</span>
+              <span className="text-lg font-bold text-[#2C2C2C] dark:text-gray-100">{count}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{config.label}</span>
             </div>
           )
         })}
@@ -135,14 +135,14 @@ export function SocialBoard({ posts: initialPosts }: { posts: Post[] }) {
           <button
             type="button"
             onClick={() => setView("board")}
-            className={`rounded p-1.5 transition-colors ${view === "board" ? "bg-[#C5A572] text-white" : "text-gray-400 hover:text-gray-600"}`}
+            className={`rounded p-1.5 transition-colors ${view === "board" ? "bg-[#C5A572] text-white" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400"}`}
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => setView("list")}
-            className={`rounded p-1.5 transition-colors ${view === "list" ? "bg-[#C5A572] text-white" : "text-gray-400 hover:text-gray-600"}`}
+            className={`rounded p-1.5 transition-colors ${view === "list" ? "bg-[#C5A572] text-white" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400"}`}
           >
             <List className="h-4 w-4" />
           </button>
@@ -262,7 +262,7 @@ function DroppableColumn({
     <div ref={setNodeRef} className="min-w-[230px] flex-1">
       <div className="mb-3 flex items-center gap-2">
         <div className="h-3 w-3 rounded-full" style={{ backgroundColor: config.color }} />
-        <h3 className="text-sm font-semibold text-gray-700">{config.label}</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{config.label}</h3>
         <Badge variant="secondary" className="text-xs">{posts.length}</Badge>
       </div>
       <div className={`space-y-2 min-h-[80px] rounded-lg p-1 transition-colors ${isOver ? "bg-[#C5A572]/10 ring-2 ring-[#C5A572]/30" : ""}`}>
@@ -270,7 +270,7 @@ function DroppableColumn({
           <DraggablePostCard key={post.id} post={post} isDragging={post.id === activeId} />
         ))}
         {posts.length === 0 && (
-          <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400">Keine Posts</div>
+          <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400 dark:text-gray-500">Keine Posts</div>
         )}
       </div>
     </div>
@@ -316,7 +316,7 @@ function StaticBoardView({ posts }: { posts: Post[] }) {
           <div key={status} className="min-w-[230px] flex-1">
             <div className="mb-3 flex items-center gap-2">
               <div className="h-3 w-3 rounded-full" style={{ backgroundColor: config.color }} />
-              <h3 className="text-sm font-semibold text-gray-700">{config.label}</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{config.label}</h3>
               <Badge variant="secondary" className="text-xs">{columnPosts.length}</Badge>
             </div>
             <div className="space-y-2 min-h-[80px] rounded-lg p-1">
@@ -324,7 +324,7 @@ function StaticBoardView({ posts }: { posts: Post[] }) {
                 <PostCardStatic key={post.id} post={post} />
               ))}
               {columnPosts.length === 0 && (
-                <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400">Keine Posts</div>
+                <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400 dark:text-gray-500">Keine Posts</div>
               )}
             </div>
           </div>
@@ -355,7 +355,7 @@ function ListView({ posts }: { posts: Post[] }) {
         const label = key === "ungeplant" ? "Ungeplant" : (() => { const [y, m] = key.split("-").map(Number); return `${MONTH_NAMES[m - 1]} ${y}` })()
         return (
           <div key={key}>
-            <h3 className="mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wide">{label} ({items.length})</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label} ({items.length})</h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((post) => (
                 <a key={post.id} href={`/social/${post.id}`} className="block">
@@ -393,8 +393,8 @@ function PostCardStatic({ post, isDragging, overlay }: { post: Post; isDragging?
             </div>
             <div className="min-w-0">
               <p className="font-medium text-sm truncate">{post.title || "Ohne Titel"}</p>
-              <span className="text-[10px] text-gray-400 capitalize">{post.post_type}</span>
-              {post.series_order ? <span className="text-[10px] text-gray-400"> · Teil {post.series_order}</span> : null}
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 capitalize">{post.post_type}</span>
+              {post.series_order ? <span className="text-[10px] text-gray-400 dark:text-gray-500"> · Teil {post.series_order}</span> : null}
             </div>
           </div>
           <Badge
@@ -404,22 +404,22 @@ function PostCardStatic({ post, isDragging, overlay }: { post: Post; isDragging?
             {status.label}
           </Badge>
         </div>
-        {post.caption && <p className="text-xs text-gray-500 line-clamp-2 ml-[3.25rem]">{post.caption.replace(/\[URL:[^\]]*\]/g, '').trim()}</p>}
+        {post.caption && <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 ml-[3.25rem]">{post.caption.replace(/\[URL:[^\]]*\]/g, '').trim()}</p>}
         <div className="flex flex-wrap items-center gap-1.5 ml-[3.25rem]">
           {post.scheduled_at && (
-            <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
+            <span className="flex items-center gap-0.5 text-[10px] text-gray-400 dark:text-gray-500">
               <Calendar className="h-3 w-3" />
               {new Date(post.scheduled_at).toLocaleDateString("de-CH", { day: "numeric", month: "short" })}
             </span>
           )}
           {post.concept && (
-            <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
+            <span className="flex items-center gap-0.5 text-[10px] text-gray-400 dark:text-gray-500">
               <Lightbulb className="h-3 w-3" />
               {post.concept.name}
             </span>
           )}
           {post.hashtags && post.hashtags.length > 0 && (
-            <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
+            <span className="flex items-center gap-0.5 text-[10px] text-gray-400 dark:text-gray-500">
               <Hash className="h-3 w-3" />{post.hashtags.length}
             </span>
           )}

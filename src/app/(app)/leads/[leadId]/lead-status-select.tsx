@@ -58,7 +58,7 @@ export function LeadStatusSelect({
         ))}
       </select>
       {isPending && (
-        <p className="text-xs text-gray-400">Wird aktualisiert...</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">Wird aktualisiert...</p>
       )}
     </div>
   )

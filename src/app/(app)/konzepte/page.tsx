@@ -28,8 +28,8 @@ export default async function KonzeptePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#2C2C2C]">Konzepte</h1>
-          <p className="text-gray-500">
+          <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">Konzepte</h1>
+          <p className="text-gray-500 dark:text-gray-400">
             Nischen-Konzepte für gezielte Zielgruppenansprache
           </p>
         </div>
@@ -54,17 +54,17 @@ export default async function KonzeptePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {c.description && (
-                  <p className="text-sm text-gray-600">{c.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{c.description}</p>
                 )}
                 {c.target_audience && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500">Zielgruppe</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Zielgruppe</p>
                     <p className="text-sm">{c.target_audience}</p>
                   </div>
                 )}
                 {c.price_range && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500">Preisbereich</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Preisbereich</p>
                     <p className="text-sm font-semibold text-[#C5A572]">{c.price_range}</p>
                   </div>
                 )}

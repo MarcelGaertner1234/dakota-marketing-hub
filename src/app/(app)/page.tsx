@@ -49,15 +49,15 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-[#2C2C2C]">Dashboard</h1>
-        <p className="text-gray-500">Dakota Air Lounge — Marketing Hub</p>
+        <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">Dashboard</h1>
+        <p className="text-gray-500 dark:text-gray-400">Dakota Air Lounge — Marketing Hub</p>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-[#C5A572]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Events diesen Monat</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Events diesen Monat</CardTitle>
             <Calendar className="h-4 w-4 text-[#C5A572]" />
           </CardHeader>
           <CardContent>
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
 
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Aktive Leads</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Aktive Leads</CardTitle>
             <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
 
         <Card className="border-l-4 border-l-purple-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Konzepte</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Konzepte</CardTitle>
             <Lightbulb className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
 
         <Card className="border-l-4 border-l-yellow-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Bewertungen</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Bewertungen</CardTitle>
             <Star className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
@@ -110,14 +110,14 @@ export default async function DashboardPage() {
             {upcomingRes.data && upcomingRes.data.length > 0 ? (
               upcomingRes.data.map((event) => (
                 <Link key={event.id} href={`/kalender/${event.id}`}>
-                  <div className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50">
+                  <div className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
                     <div
                       className="h-3 w-3 shrink-0 rounded-full"
                       style={{ backgroundColor: EVENT_TYPE_COLORS[event.event_type as keyof typeof EVENT_TYPE_COLORS] || "#6B7280" }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{event.title}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {new Date(event.start_date).toLocaleDateString("de-CH", {
                           weekday: "short",
                           day: "numeric",
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
                 </Link>
               ))
             ) : (
-              <p className="text-sm text-gray-400 text-center py-4">
+              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
                 Keine anstehenden Events.{" "}
                 <Link href="/kalender/neu" className="text-[#C5A572] hover:underline">
                   Event erstellen
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
                         </Link>
                       )}
                       {task.due_date && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
                           Fällig: {new Date(task.due_date).toLocaleDateString("de-CH")}
                         </span>
                       )}
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-400 text-center py-4">
+              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
                 Keine offenen Aufgaben.
               </p>
             )}

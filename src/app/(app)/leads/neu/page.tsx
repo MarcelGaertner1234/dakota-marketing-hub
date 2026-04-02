@@ -27,8 +27,8 @@ export default function NeuerLeadPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-[#2C2C2C]">Neuer Lead</h1>
-          <p className="text-gray-500">Kontakt erfassen und nachverfolgen</p>
+          <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">Neuer Lead</h1>
+          <p className="text-gray-500 dark:text-gray-400">Kontakt erfassen und nachverfolgen</p>
         </div>
       </div>
 

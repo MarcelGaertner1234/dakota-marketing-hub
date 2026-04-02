@@ -28,8 +28,8 @@ export default async function NeuerPostPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-[#2C2C2C]">Neuer Post</h1>
-          <p className="text-gray-500">Social Media Beitrag planen</p>
+          <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">Neuer Post</h1>
+          <p className="text-gray-500 dark:text-gray-400">Social Media Beitrag planen</p>
         </div>
       </div>
 

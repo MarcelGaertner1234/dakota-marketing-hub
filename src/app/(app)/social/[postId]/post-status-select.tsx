@@ -34,7 +34,7 @@ export function PostStatusSelect({
       value={currentStatus}
       onChange={handleChange}
       disabled={isPending}
-      className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium focus:border-[#C5A572] focus:outline-none focus:ring-1 focus:ring-[#C5A572]"
+      className="mt-1 w-full rounded-md border border-gray-200 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-medium focus:border-[#C5A572] focus:outline-none focus:ring-1 focus:ring-[#C5A572]"
     >
       {STATUS_OPTIONS.map((opt) => (
         <option key={opt.value} value={opt.value}>

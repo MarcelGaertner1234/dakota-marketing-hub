@@ -87,6 +87,68 @@ export async function updateLeadStatus(id: string, status: string) {
   revalidatePath("/leads")
 }
 
+// ============================================
+// LEAD ↔ EVENT Linking (n:m via lead_events)
+// ============================================
+
+export async function getLeadEvents(leadId: string) {
+  const supabase = createServerClient()
+  const { data, error } = await supabase
+    .from("lead_events")
+    .select("lead_id, event_id, status, notes, event:events(id, title, start_date, event_type)")
+    .eq("lead_id", leadId)
+  if (error) throw error
+  return data
+}
+
+export async function linkLeadToEvent(
+  leadId: string,
+  eventId: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = createServerClient()
+  try {
+    const { error } = await supabase
+      .from("lead_events")
+      .insert({ lead_id: leadId, event_id: eventId })
+    if (error) return { success: false, error: error.message }
+    revalidatePath(`/leads/${leadId}`)
+    revalidatePath(`/kalender/${eventId}`)
+    return { success: true }
+  } catch {
+    return { success: false, error: "Fehler beim Verknüpfen" }
+  }
+}
+
+export async function unlinkLeadFromEvent(
+  leadId: string,
+  eventId: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = createServerClient()
+  try {
+    const { error } = await supabase
+      .from("lead_events")
+      .delete()
+      .eq("lead_id", leadId)
+      .eq("event_id", eventId)
+    if (error) return { success: false, error: error.message }
+    revalidatePath(`/leads/${leadId}`)
+    revalidatePath(`/kalender/${eventId}`)
+    return { success: true }
+  } catch {
+    return { success: false, error: "Fehler beim Entfernen der Verknüpfung" }
+  }
+}
+
+export async function getEventLeads(eventId: string) {
+  const supabase = createServerClient()
+  const { data, error } = await supabase
+    .from("lead_events")
+    .select("lead_id, event_id, status, notes, lead:leads(id, name, company, status, lead_type)")
+    .eq("event_id", eventId)
+  if (error) throw error
+  return data
+}
+
 export async function addLeadActivity(formData: FormData) {
   const supabase = createServerClient()
   const { error } = await supabase.from("lead_activities").insert({

@@ -19,11 +19,14 @@ import {
   Save,
   X,
   Loader2,
+  CalendarDays,
+  Plus,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
-import { updateLead } from "@/lib/actions/leads"
-import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants"
-import type { LeadStatus, LeadType } from "@/types/database"
+import { updateLead, linkLeadToEvent, unlinkLeadFromEvent } from "@/lib/actions/leads"
+import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants"
+import type { LeadStatus, LeadType, EventType } from "@/types/database"
 import { LeadStatusSelect } from "./lead-status-select"
 import { ActivityForm } from "./activity-form"
 import { useRouter } from "next/navigation"
@@ -66,13 +69,61 @@ interface LeadData {
   }>
 }
 
-export function LeadDetail({ lead }: { lead: LeadData }) {
+interface LinkedEvent {
+  lead_id: string
+  event_id: string
+  status: string | null
+  notes: string | null
+  event: { id: string; title: string; start_date: string; event_type: string } | null
+}
+
+interface EventOption {
+  id: string
+  title: string
+  start_date: string
+  event_type: string
+}
+
+export function LeadDetail({
+  lead,
+  linkedEvents,
+  allEvents,
+}: {
+  lead: LeadData
+  linkedEvents: LinkedEvent[]
+  allEvents: EventOption[]
+}) {
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
+  const [showEventPicker, setShowEventPicker] = useState(false)
+  const [linkingEvent, startLinkTransition] = useTransition()
+
   const status = lead.status as LeadStatus
+
+  const linkedEventIds = new Set(linkedEvents.map((le) => le.event_id))
+  const availableEvents = allEvents.filter((e) => !linkedEventIds.has(e.id))
+
+  function handleLinkEvent(eventId: string) {
+    startLinkTransition(async () => {
+      const result = await linkLeadToEvent(lead.id, eventId)
+      if (result.success) {
+        setShowEventPicker(false)
+        router.refresh()
+      }
+    })
+  }
+
+  function handleUnlinkEvent(eventId: string) {
+    startLinkTransition(async () => {
+      const result = await unlinkLeadFromEvent(lead.id, eventId)
+      if (result.success) {
+        router.refresh()
+      }
+    })
+  }
 
   function handleSave(formData: FormData) {
     setError(null)
@@ -113,7 +164,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-[#2C2C2C]">{lead.name}</h1>
+            <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">{lead.name}</h1>
             <Badge
               style={{
                 backgroundColor: LEAD_STATUS_COLORS[status],
@@ -124,7 +175,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
             </Badge>
           </div>
           {lead.company && (
-            <p className="mt-1 text-gray-500">{lead.company}</p>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">{lead.company}</p>
           )}
         </div>
         <Button
@@ -244,7 +295,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
               </div>
 
               {error && (
-                <p className="text-sm text-red-500">{error}</p>
+                <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
               )}
 
               <div className="flex justify-end gap-2 pt-4">
@@ -283,7 +334,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
               <CardContent className="flex items-center gap-3 p-4">
                 <Building className="h-5 w-5 text-[#C5A572]" />
                 <div>
-                  <p className="text-xs text-gray-500">Typ</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Typ</p>
                   <p className="font-medium capitalize">{LEAD_TYPE_LABELS[lead.lead_type as LeadType] || lead.lead_type}</p>
                 </div>
               </CardContent>
@@ -293,7 +344,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
                 <CardContent className="flex items-center gap-3 p-4">
                   <Mail className="h-5 w-5 text-[#C5A572]" />
                   <div>
-                    <p className="text-xs text-gray-500">E-Mail</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">E-Mail</p>
                     <a href={`mailto:${lead.email}`} className="font-medium text-[#C5A572] hover:underline">
                       {lead.email}
                     </a>
@@ -306,7 +357,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
                 <CardContent className="flex items-center gap-3 p-4">
                   <Phone className="h-5 w-5 text-[#C5A572]" />
                   <div>
-                    <p className="text-xs text-gray-500">Telefon</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Telefon</p>
                     <a href={`tel:${lead.phone}`} className="font-medium text-[#C5A572] hover:underline">
                       {lead.phone}
                     </a>
@@ -319,7 +370,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
                 <CardContent className="flex items-center gap-3 p-4">
                   <MapPin className="h-5 w-5 text-[#C5A572]" />
                   <div>
-                    <p className="text-xs text-gray-500">Adresse</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Adresse</p>
                     <p className="font-medium">{lead.address}</p>
                   </div>
                 </CardContent>
@@ -329,7 +380,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
               <CardContent className="flex items-center gap-3 p-4">
                 <Clock className="h-5 w-5 text-[#C5A572]" />
                 <div>
-                  <p className="text-xs text-gray-500">Erstellt am</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Erstellt am</p>
                   <p className="font-medium">
                     {new Date(lead.created_at).toLocaleDateString("de-CH", {
                       day: "numeric",
@@ -345,7 +396,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
           {/* Tags */}
           {lead.tags && lead.tags.length > 0 && (
             <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-gray-400" />
+              <Tag className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <div className="flex flex-wrap gap-1">
                 {lead.tags.map((tag: string) => (
                   <Badge key={tag} variant="outline">
@@ -371,7 +422,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
                 <CardTitle>Notizen</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
                   {lead.notes || "Keine Notizen vorhanden."}
                 </p>
               </CardContent>
@@ -379,6 +430,117 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
           </div>
         </>
       )}
+
+      {/* Verknuepfte Events */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-[#C5A572]" />
+            Verknuepfte Events
+          </CardTitle>
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEventPicker(!showEventPicker)}
+              disabled={linkingEvent}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              Event verknuepfen
+            </Button>
+            {showEventPicker && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-md border bg-white dark:bg-gray-800 shadow-lg dark:border-gray-700">
+                <div className="max-h-64 overflow-y-auto p-1">
+                  {availableEvents.length === 0 ? (
+                    <p className="p-3 text-center text-sm text-gray-400 dark:text-gray-500">
+                      Keine weiteren Events verfuegbar
+                    </p>
+                  ) : (
+                    availableEvents.map((event) => (
+                      <button
+                        key={event.id}
+                        onClick={() => handleLinkEvent(event.id)}
+                        className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+                        disabled={linkingEvent}
+                      >
+                        <Badge
+                          className="shrink-0 text-[10px]"
+                          style={{
+                            backgroundColor: EVENT_TYPE_COLORS[event.event_type as EventType],
+                            color: "white",
+                          }}
+                        >
+                          {EVENT_TYPE_LABELS[event.event_type as EventType]}
+                        </Badge>
+                        <span className="truncate font-medium">{event.title}</span>
+                        <span className="ml-auto shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                          {new Date(event.start_date + "T00:00:00").toLocaleDateString("de-CH", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {linkedEvents.length > 0 ? (
+            <div className="space-y-2">
+              {linkedEvents.map((le) =>
+                le.event ? (
+                  <div
+                    key={le.event_id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        className="text-[10px]"
+                        style={{
+                          backgroundColor: EVENT_TYPE_COLORS[le.event.event_type as EventType],
+                          color: "white",
+                        }}
+                      >
+                        {EVENT_TYPE_LABELS[le.event.event_type as EventType]}
+                      </Badge>
+                      <Link
+                        href={`/kalender/${le.event.id}`}
+                        className="font-medium text-[#2C2C2C] dark:text-gray-100 hover:text-[#C5A572] hover:underline"
+                      >
+                        {le.event.title}
+                      </Link>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        {new Date(le.event.start_date + "T00:00:00").toLocaleDateString("de-CH", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 dark:text-red-400 hover:text-red-700"
+                      onClick={() => handleUnlinkEvent(le.event_id)}
+                      disabled={linkingEvent}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="ml-1 hidden sm:inline">Entfernen</span>
+                    </Button>
+                  </div>
+                ) : null
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Noch keine Events verknuepft.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Activity History */}
       <Card>
@@ -407,7 +569,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
                         >
                           {activity.activity_type}
                         </Badge>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
                           {new Date(activity.contacted_at).toLocaleDateString(
                             "de-CH",
                             {
@@ -420,16 +582,16 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
                           )}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-gray-700">
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
                         {activity.description}
                       </p>
                       {activity.contacted_member && (
-                        <p className="mt-0.5 text-xs text-gray-500">
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                           von {activity.contacted_member.name}
                         </p>
                       )}
                       {activity.event && (
-                        <p className="mt-0.5 text-xs text-gray-500">
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                           Event: {activity.event.title}
                         </p>
                       )}
@@ -438,7 +600,7 @@ export function LeadDetail({ lead }: { lead: LeadData }) {
                 ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
               Noch keine Aktivitäten erfasst.
             </p>
           )}

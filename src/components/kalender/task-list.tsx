@@ -12,10 +12,10 @@ import { createTask, updateTaskStatus } from "@/lib/actions/tasks"
 import { TASK_PRIORITY_LABELS } from "@/lib/constants"
 
 const PRIORITY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  low: { bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-300" },
-  medium: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-300" },
-  high: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-300" },
-  urgent: { bg: "bg-red-50", text: "text-red-700", border: "border-red-300" },
+  low: { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", border: "border-gray-300 dark:border-gray-600" },
+  medium: { bg: "bg-blue-50 dark:bg-blue-950", text: "text-blue-700 dark:text-blue-300", border: "border-blue-300 dark:border-blue-700" },
+  high: { bg: "bg-orange-50 dark:bg-orange-950", text: "text-orange-700 dark:text-orange-300", border: "border-orange-300 dark:border-orange-700" },
+  urgent: { bg: "bg-red-50 dark:bg-red-950", text: "text-red-700 dark:text-red-300", border: "border-red-300 dark:border-red-700" },
 }
 
 interface TeamMemberOption {
@@ -88,7 +88,7 @@ export function TaskList({
       <CardContent className="space-y-3">
         {/* Add form */}
         {showForm && (
-          <form action={handleAdd} className="space-y-2 rounded-lg border bg-gray-50 p-3">
+          <form action={handleAdd} className="space-y-2 rounded-lg border bg-gray-50 dark:bg-gray-800 p-3">
             {/* Row 1: Title + Due Date + Add Button */}
             <div className="flex gap-2">
               <Input name="title" placeholder="Neue Aufgabe..." required className="flex-1" />
@@ -102,7 +102,7 @@ export function TaskList({
             <button
               type="button"
               onClick={() => setShowExtras(!showExtras)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 transition-colors"
             >
               {showExtras ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               {showExtras ? "Weniger Optionen" : "Mehr Optionen"}
@@ -113,7 +113,7 @@ export function TaskList({
               <div className="flex gap-2">
                 <select
                   name="priority"
-                  className="flex h-9 rounded-md border border-input bg-white px-3 py-1 text-sm w-36"
+                  className="flex h-9 rounded-md border border-input bg-white dark:bg-gray-800 px-3 py-1 text-sm w-36"
                   defaultValue="medium"
                 >
                   <option value="low">Niedrig</option>
@@ -124,7 +124,7 @@ export function TaskList({
 
                 <select
                   name="assigned_to"
-                  className="flex h-9 flex-1 rounded-md border border-input bg-white px-3 py-1 text-sm"
+                  className="flex h-9 flex-1 rounded-md border border-input bg-white dark:bg-gray-800 px-3 py-1 text-sm"
                   defaultValue=""
                 >
                   <option value="">Nicht zugewiesen</option>
@@ -151,7 +151,7 @@ export function TaskList({
           return (
             <div
               key={task.id}
-              className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50"
+              className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <Checkbox
                 checked={false}
@@ -162,7 +162,7 @@ export function TaskList({
                 <p className="text-sm font-medium">{task.title}</p>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   {task.due_date && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       Fällig: {(() => { const [y,m,d] = task.due_date!.split("-").map(Number); return new Date(y, m-1, d); })().toLocaleDateString("de-CH")}
                     </span>
                   )}
@@ -194,7 +194,7 @@ export function TaskList({
         {/* Done tasks */}
         {doneTasks.length > 0 && (
           <div className="border-t pt-3 mt-3">
-            <p className="text-xs font-medium text-gray-400 mb-2">Erledigt ({doneTasks.length})</p>
+            <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2">Erledigt ({doneTasks.length})</p>
             {doneTasks.map((task) => (
               <div
                 key={task.id}
@@ -207,7 +207,7 @@ export function TaskList({
                 />
                 <p className="text-sm line-through flex-1">{task.title}</p>
                 {task.assigned_member && (
-                  <span className="text-xs text-gray-400">{task.assigned_member.name}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{task.assigned_member.name}</span>
                 )}
               </div>
             ))}
@@ -215,7 +215,7 @@ export function TaskList({
         )}
 
         {tasks.length === 0 && !showForm && (
-          <p className="text-center text-sm text-gray-400 py-4">
+          <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-4">
             Noch keine Aufgaben. Klick auf &quot;Aufgabe&quot; um loszulegen.
           </p>
         )}

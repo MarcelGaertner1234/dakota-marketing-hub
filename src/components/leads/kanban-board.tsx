@@ -84,7 +84,7 @@ function DroppableColumn({
           className="h-3 w-3 rounded-full"
           style={{ backgroundColor: LEAD_STATUS_COLORS[status] }}
         />
-        <h3 className="text-sm font-semibold text-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           {LEAD_STATUS_LABELS[status]}
         </h3>
         <Badge variant="secondary" className="text-xs">
@@ -105,7 +105,7 @@ function DroppableColumn({
           />
         ))}
         {leads.length === 0 && (
-          <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400">
+          <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400 dark:text-gray-500">
             Keine Leads
           </div>
         )}
@@ -157,14 +157,14 @@ function LeadCard({
                   {lead.name}
                 </p>
                 {lead.company && (
-                  <p className="text-xs text-gray-500">{lead.company}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{lead.company}</p>
                 )}
-                <p className="text-xs text-gray-400 capitalize mt-0.5">
+                <p className="text-xs text-gray-400 dark:text-gray-500 capitalize mt-0.5">
                   {lead.lead_type}
                 </p>
               </div>
             </div>
-            <Users className="h-4 w-4 text-gray-400 shrink-0" />
+            <Users className="h-4 w-4 text-gray-400 dark:text-gray-500 shrink-0" />
           </div>
           {lead.tags && lead.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1 ml-6">
@@ -190,7 +190,7 @@ function DragOverlayCard({ lead }: { lead: Lead }) {
           <div className="min-w-0">
             <p className="font-medium text-sm">{lead.name}</p>
             {lead.company && (
-              <p className="text-xs text-gray-500">{lead.company}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{lead.company}</p>
             )}
           </div>
         </div>
@@ -235,7 +235,7 @@ export function KanbanBoard({
             <div key={status} className="min-w-[220px] flex-1">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full" style={{ backgroundColor: LEAD_STATUS_COLORS[status] }} />
-                <h3 className="text-sm font-semibold text-gray-700">{LEAD_STATUS_LABELS[status]}</h3>
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{LEAD_STATUS_LABELS[status]}</h3>
                 <Badge variant="secondary" className="text-xs">{columnLeads.length}</Badge>
               </div>
               <div className="space-y-2 min-h-[100px] rounded-lg p-1">
@@ -247,17 +247,17 @@ export function KanbanBoard({
                           <GripVertical className="h-4 w-4 text-gray-300 mt-0.5 shrink-0" />
                           <div className="min-w-0">
                             <p className="font-medium text-sm">{lead.name}</p>
-                            {lead.company && <p className="text-xs text-gray-500">{lead.company}</p>}
-                            <p className="text-xs text-gray-400 capitalize mt-0.5">{lead.lead_type}</p>
+                            {lead.company && <p className="text-xs text-gray-500 dark:text-gray-400">{lead.company}</p>}
+                            <p className="text-xs text-gray-400 dark:text-gray-500 capitalize mt-0.5">{lead.lead_type}</p>
                           </div>
                         </div>
-                        <Users className="h-4 w-4 text-gray-400 shrink-0" />
+                        <Users className="h-4 w-4 text-gray-400 dark:text-gray-500 shrink-0" />
                       </div>
                     </CardContent>
                   </Card>
                 ))}
                 {columnLeads.length === 0 && (
-                  <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400">Keine Leads</div>
+                  <div className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400 dark:text-gray-500">Keine Leads</div>
                 )}
               </div>
             </div>
@@ -409,7 +409,7 @@ export function KanbanBoard({
               >
                 {LEAD_STATUS_LABELS[pendingMove.fromStatus]}
               </Badge>
-              <ArrowRight className="h-4 w-4 text-gray-400" />
+              <ArrowRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <Badge
                 className="text-sm px-3 py-1 text-white"
                 style={{ backgroundColor: LEAD_STATUS_COLORS[pendingMove.toStatus] }}
@@ -428,7 +428,7 @@ export function KanbanBoard({
                 className={`flex items-center gap-2 rounded-lg border p-3 transition-all ${
                   selectedMember === member.id
                     ? "border-[#C5A572] bg-[#C5A572]/10 ring-1 ring-[#C5A572]"
-                    : "hover:bg-gray-50"
+                    : "hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
               >
                 <div

@@ -86,23 +86,23 @@ export default function BewertungPage() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] dark:bg-gray-950 p-4">
         <Card className="w-full max-w-md text-center">
           <CardContent className="space-y-4 pt-8 pb-8">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <Gift className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-[#2C2C2C]">Merci viumau!</h2>
-            <p className="text-gray-600">
+            <h2 className="text-2xl font-bold text-[#2C2C2C] dark:text-gray-100">Merci viumau!</h2>
+            <p className="text-gray-600 dark:text-gray-400">
               Danke für deine Bewertung. Als kleines Dankeschön:
             </p>
             <div className="rounded-lg bg-[#C5A572]/10 p-4">
-              <p className="text-xs text-gray-500">Dein Goody-Code</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Dein Goody-Code</p>
               <p className="text-2xl font-bold tracking-wider text-[#C5A572]">
                 {goodyCode}
               </p>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               Zeig diesen Code beim nächsten Besuch vor!
             </p>
           </CardContent>
@@ -112,16 +112,16 @@ export default function BewertungPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] dark:bg-gray-950 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2">
-            <h1 className="font-serif text-2xl font-bold text-[#2C2C2C]">
+            <h1 className="font-serif text-2xl font-bold text-[#2C2C2C] dark:text-gray-100">
               DAKOTA <span className="text-[#C5A572]">AIR LOUNGE</span>
             </h1>
           </div>
           <CardTitle className="text-lg">Wie war dein Erlebnis?</CardTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Dein Feedback hilft uns, noch besser zu werden.
           </p>
         </CardHeader>
@@ -153,7 +153,7 @@ export default function BewertungPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-500 text-center">{error}</p>
+              <p className="text-sm text-red-500 dark:text-red-400 text-center">{error}</p>
             )}
 
             <Button
@@ -167,7 +167,7 @@ export default function BewertungPage() {
               Bewertung abschicken
             </Button>
 
-            <p className="text-center text-xs text-gray-400">
+            <p className="text-center text-xs text-gray-400 dark:text-gray-500">
               Du erhältst einen Goody-Code als Dankeschön!
             </p>
           </form>

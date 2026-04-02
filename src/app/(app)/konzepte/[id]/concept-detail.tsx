@@ -154,9 +154,9 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-[#2C2C2C]">{concept.name}</h1>
+          <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">{concept.name}</h1>
           {concept.description && (
-            <p className="mt-1 text-gray-500">{concept.description}</p>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">{concept.description}</p>
           )}
         </div>
         <Button
@@ -179,7 +179,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
       {/* Image Gallery */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-sm text-gray-500">
+          <CardTitle className="text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
               Bilder für Social Media ({images.length})
@@ -224,7 +224,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
                         <button
                           type="button"
                           onClick={() => handleSetCover(file.url)}
-                          className="rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-gray-700 hover:bg-white"
+                          className="rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-gray-700 dark:text-gray-300 hover:bg-white"
                         >
                           Als Cover
                         </button>
@@ -249,24 +249,24 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex h-40 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
+                className="flex h-40 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
               >
-                <Upload className="h-6 w-6 text-gray-400" />
-                <span className="text-xs text-gray-500">Hinzufügen</span>
+                <Upload className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">Hinzufügen</span>
               </button>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-48 w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
+              className="flex h-48 w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
             >
               {isUploading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-[#C5A572]" />
               ) : (
-                <ImageIcon className="h-8 w-8 text-gray-400" />
+                <ImageIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
               )}
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {isUploading
                   ? "Wird hochgeladen..."
                   : "Konzept-Bilder hochladen (für Social Media)"}
@@ -400,7 +400,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
           {concept.description && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-gray-500">Beschreibung</CardTitle>
+                <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Beschreibung</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm">{concept.description}</p>
@@ -411,7 +411,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
           {concept.description_berndeutsch && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-gray-500">Beschreibung (Berndeutsch)</CardTitle>
+                <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Beschreibung (Berndeutsch)</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm">{concept.description_berndeutsch}</p>
@@ -423,7 +423,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
             {concept.target_audience && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500">
+                  <CardTitle className="text-sm text-gray-500 dark:text-gray-400">
                     Zielgruppe
                   </CardTitle>
                 </CardHeader>
@@ -436,7 +436,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
             {concept.menu_description && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500">Menu</CardTitle>
+                  <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Menu</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">{concept.menu_description}</p>
@@ -447,7 +447,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
             {concept.price_range && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500">
+                  <CardTitle className="text-sm text-gray-500 dark:text-gray-400">
                     Preisbereich
                   </CardTitle>
                 </CardHeader>
@@ -463,7 +463,7 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
           {concept.channels && concept.channels.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-gray-500">Kanäle</CardTitle>
+                <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Kanäle</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
@@ -513,12 +513,12 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
                 <Link
                   key={event.id}
                   href={`/kalender/${event.id}`}
-                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50"
+                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <Calendar className="h-4 w-4 text-[#C5A572]" />
                   <div className="flex-1">
                     <p className="font-medium">{event.title}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(
                         event.start_date + "T12:00:00"
                       ).toLocaleDateString("de-CH", {

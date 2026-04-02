@@ -48,6 +48,37 @@ export async function getReviewStats() {
   }
 }
 
+export async function getGoodyReviews() {
+  const supabase = createServerClient()
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .not("goody_code", "is", null)
+    .order("created_at", { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function claimGoodyCode(reviewId: string) {
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("reviews")
+    .update({ goody_claimed: true })
+    .eq("id", reviewId)
+  if (error) throw error
+  revalidatePath("/bewertungen")
+}
+
+export async function unclaimGoodyCode(reviewId: string) {
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("reviews")
+    .update({ goody_claimed: false })
+    .eq("id", reviewId)
+  if (error) throw error
+  revalidatePath("/bewertungen")
+}
+
 export async function createReview(data: {
   token: string
   food_rating: number

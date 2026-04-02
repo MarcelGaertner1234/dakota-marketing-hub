@@ -12,7 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight, Plus, Calendar, MapPin, Clock } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Calendar, MapPin, Clock, Repeat } from "lucide-react"
 import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from "@/lib/constants"
 import type { EventType } from "@/types/database"
 import Link from "next/link"
@@ -47,6 +47,8 @@ interface CalendarEvent {
   location?: string | null
   event_type: EventType
   description?: string | null
+  recurrence?: string | null
+  parent_event_id?: string | null
 }
 
 interface YearCalendarProps {
@@ -94,7 +96,7 @@ function MonthGrid({
       <CardContent className="p-2">
         <div className="mb-1 grid grid-cols-7 gap-0">
           {DAY_NAMES.map((d) => (
-            <div key={d} className="text-center text-[10px] font-medium text-gray-400">{d}</div>
+            <div key={d} className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-0">
@@ -115,12 +117,12 @@ function MonthGrid({
                   relative flex min-h-[32px] flex-col items-center justify-start p-0.5 rounded-md
                   transition-all duration-150 cursor-pointer
                   ${isSelected ? "bg-[#C5A572]/20 ring-2 ring-[#C5A572]"
-                    : hasEvents ? "hover:bg-[#C5A572]/10" : "hover:bg-gray-100"}
+                    : hasEvents ? "hover:bg-[#C5A572]/10" : "hover:bg-gray-100 dark:hover:bg-gray-800"}
                 `}
               >
                 <span className={`text-[11px] leading-none ${
                   isToday ? "flex h-5 w-5 items-center justify-center rounded-full bg-[#C5A572] font-bold text-white"
-                    : hasEvents ? "font-semibold text-[#2C2C2C]" : "text-gray-500"
+                    : hasEvents ? "font-semibold text-[#2C2C2C] dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
                 }`}>
                   {day}
                 </span>
@@ -131,7 +133,7 @@ function MonthGrid({
                         style={{ backgroundColor: EVENT_TYPE_COLORS[e.event_type] }} />
                     ))}
                     {dayEvents.length > 3 && (
-                      <span className="text-[8px] text-gray-400">+{dayEvents.length - 3}</span>
+                      <span className="text-[8px] text-gray-400 dark:text-gray-500">+{dayEvents.length - 3}</span>
                     )}
                   </div>
                 )}
@@ -146,16 +148,19 @@ function MonthGrid({
               .slice(0, 6)
               .map((e, i) => (
                 <button key={i} type="button" onClick={() => onDayClick(e.start_date)}
-                  className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-gray-100">
+                  className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
                   <div className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: EVENT_TYPE_COLORS[e.event_type] }} />
-                  <span className="truncate text-[10px] text-gray-600">
+                  <span className="truncate text-[10px] text-gray-600 dark:text-gray-400 flex items-center gap-0.5">
                     {parseDateLocal(e.start_date).getDate()}. {e.title}
+                    {(e.recurrence && e.recurrence !== "none" || e.parent_event_id) && (
+                      <Repeat className="inline h-2.5 w-2.5 shrink-0 text-[#C5A572]" />
+                    )}
                   </span>
                 </button>
               ))}
             {monthItems.length > 6 && (
-              <p className="text-[10px] text-gray-400 text-center pt-1">+{monthItems.length - 6} weitere</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center pt-1">+{monthItems.length - 6} weitere</p>
             )}
           </div>
         )}
@@ -205,7 +210,7 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
           <Button variant="outline" size="icon" onClick={() => setYear(year - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-xl font-bold text-[#2C2C2C]">{year}</span>
+          <span className="text-xl font-bold text-[#2C2C2C] dark:text-gray-100">{year}</span>
           <Button variant="outline" size="icon" onClick={() => setYear(year + 1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -214,7 +219,7 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
           {(Object.entries(EVENT_TYPE_LABELS) as [EventType, string][]).map(([type, label]) => (
             <div key={type} className="flex items-center gap-1.5">
               <div className="h-3 w-3 rounded-full" style={{ backgroundColor: EVENT_TYPE_COLORS[type] }} />
-              <span className="text-xs text-gray-600">{label}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>
             </div>
           ))}
         </div>
@@ -259,11 +264,11 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
               <div className="max-h-[50vh] overflow-y-auto space-y-2 -mx-1 px-1">
                 {/* Feiertage */}
                 {holidayEvents.map((e, i) => (
-                  <div key={i} className="flex items-center gap-3 rounded-lg bg-red-50 border border-red-100 p-3">
+                  <div key={i} className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900 p-3">
                     <div className="h-3 w-3 shrink-0 rounded-full bg-red-500" />
                     <div>
-                      <p className="text-sm font-medium text-red-800">{e.title}</p>
-                      <p className="text-xs text-red-500">Feiertag</p>
+                      <p className="text-sm font-medium text-red-800 dark:text-red-300">{e.title}</p>
+                      <p className="text-xs text-red-500 dark:text-red-400">Feiertag</p>
                     </div>
                   </div>
                 ))}
@@ -275,26 +280,29 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
                       <div className="mt-1 h-3 w-3 shrink-0 rounded-full"
                         style={{ backgroundColor: EVENT_TYPE_COLORS[e.event_type] }} />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm group-hover:text-[#C5A572] transition-colors">
+                        <p className="font-medium text-sm group-hover:text-[#C5A572] transition-colors flex items-center gap-1">
                           {e.title}
+                          {(e.recurrence && e.recurrence !== "none" || e.parent_event_id) && (
+                            <Repeat className="inline h-3 w-3 shrink-0 text-[#C5A572]" />
+                          )}
                         </p>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                           {(e.start_time || e.end_time) && (
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                               <Clock className="h-3 w-3" />
                               {e.start_time?.slice(0, 5) || "—"}
                               {e.end_time && ` – ${e.end_time.slice(0, 5)}`}
                             </span>
                           )}
                           {e.location && (
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                               <MapPin className="h-3 w-3" />
                               {e.location}
                             </span>
                           )}
                         </div>
                         {e.description && (
-                          <p className="text-xs text-gray-400 mt-1 line-clamp-2">{e.description}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 line-clamp-2">{e.description}</p>
                         )}
                       </div>
                       <Badge variant="outline" className="shrink-0 text-[10px] h-5 self-start"
@@ -309,14 +317,14 @@ export function YearCalendar({ events, holidays }: YearCalendarProps) {
                 {selectedDayEvents.length === 0 && (
                   <div className="text-center py-6">
                     <Calendar className="mx-auto h-10 w-10 text-gray-300 mb-3" />
-                    <p className="text-sm text-gray-400">Noch nichts geplant</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">Noch nichts geplant</p>
                   </div>
                 )}
               </div>
 
               {realEvents.length > 0 && (
                 <DialogFooter>
-                  <p className="text-xs text-gray-500 w-full text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 w-full text-center">
                     Klick auf ein Event für Details & Aufgaben
                   </p>
                 </DialogFooter>

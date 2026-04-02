@@ -8,6 +8,7 @@ import { getConcepts } from "@/lib/actions/concepts"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { RecurrenceFields } from "@/components/kalender/recurrence-fields"
 
 export default async function NeuesEventPage({
   searchParams,
@@ -32,8 +33,8 @@ export default async function NeuesEventPage({
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-[#2C2C2C]">Neues Event</h1>
-          <p className="text-gray-500">Event zum Marketing-Kalender hinzufügen</p>
+          <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">Neues Event</h1>
+          <p className="text-gray-500 dark:text-gray-400">Event zum Marketing-Kalender hinzufügen</p>
         </div>
       </div>
 
@@ -105,6 +106,9 @@ export default async function NeuesEventPage({
               </div>
             </div>
 
+            {/* Wiederholung */}
+            <RecurrenceFields />
+
             <div className="space-y-2">
               <Label htmlFor="lead_time_days">Vorlaufzeit (Tage)</Label>
               <Input
@@ -114,7 +118,7 @@ export default async function NeuesEventPage({
                 defaultValue={28}
                 min={0}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Wie viele Tage vorher soll eine Erinnerung erscheinen?
               </p>
             </div>

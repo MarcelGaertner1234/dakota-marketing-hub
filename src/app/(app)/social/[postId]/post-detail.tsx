@@ -161,12 +161,12 @@ export function PostDetail({ post }: { post: PostData }) {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-[#2C2C2C]">{post.title || "Ohne Titel"}</h1>
+            <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">{post.title || "Ohne Titel"}</h1>
             <Badge className="text-white" style={{ backgroundColor: platform.color }}>
               {platform.label}
             </Badge>
           </div>
-          <p className="mt-1 text-gray-500 capitalize">
+          <p className="mt-1 text-gray-500 dark:text-gray-400 capitalize">
             {post.post_type}{post.series_order ? ` · Teil ${post.series_order}` : ""}
           </p>
         </div>
@@ -183,7 +183,7 @@ export function PostDetail({ post }: { post: PostData }) {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-gray-500">Status</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
             <PostStatusSelect postId={post.id} currentStatus={post.status} />
           </CardContent>
         </Card>
@@ -191,7 +191,7 @@ export function PostDetail({ post }: { post: PostData }) {
           <CardContent className="flex items-center gap-3 p-4">
             <Calendar className="h-5 w-5 text-[#C5A572]" />
             <div>
-              <p className="text-xs text-gray-500">Geplant für</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Geplant für</p>
               <p className="font-medium">
                 {post.scheduled_at
                   ? new Date(post.scheduled_at).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "long", year: "numeric" })
@@ -204,7 +204,7 @@ export function PostDetail({ post }: { post: PostData }) {
           <CardContent className="flex items-center gap-3 p-4">
             <platform.Icon className="h-5 w-5" style={{ color: platform.color }} />
             <div>
-              <p className="text-xs text-gray-500">Plattform</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Plattform</p>
               <p className="font-medium">{platform.label}</p>
             </div>
           </CardContent>
@@ -214,7 +214,7 @@ export function PostDetail({ post }: { post: PostData }) {
       {/* Image Gallery */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-sm text-gray-500">
+          <CardTitle className="text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
               Bilder & Medien ({images.length})
@@ -248,20 +248,20 @@ export function PostDetail({ post }: { post: PostData }) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex h-36 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
+                className="flex h-36 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
               >
-                <Upload className="h-5 w-5 text-gray-400" />
-                <span className="text-xs text-gray-500">Hinzufügen</span>
+                <Upload className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">Hinzufügen</span>
               </button>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
+              className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 transition-colors hover:border-[#C5A572] hover:bg-[#C5A572]/5"
             >
-              {isUploading ? <Loader2 className="h-6 w-6 animate-spin text-[#C5A572]" /> : <ImageIcon className="h-6 w-6 text-gray-400" />}
-              <span className="text-sm text-gray-500">{isUploading ? "Hochladen..." : "Bilder für den Post hochladen"}</span>
+              {isUploading ? <Loader2 className="h-6 w-6 animate-spin text-[#C5A572]" /> : <ImageIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />}
+              <span className="text-sm text-gray-500 dark:text-gray-400">{isUploading ? "Hochladen..." : "Bilder für den Post hochladen"}</span>
             </button>
           )}
           <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleImageUpload} />
@@ -322,7 +322,7 @@ export function PostDetail({ post }: { post: PostData }) {
                   <platform.Icon className="h-5 w-5" style={{ color: platform.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500">Link zum Post</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Link zum Post</p>
                   <a
                     href={postUrl}
                     target="_blank"
@@ -346,7 +346,7 @@ export function PostDetail({ post }: { post: PostData }) {
               {captionText ? (
                 <p className="text-sm whitespace-pre-wrap">{captionText}</p>
               ) : (
-                <p className="text-sm text-gray-400 italic">Noch keine Caption. Klick auf &quot;Bearbeiten&quot; um Text und Anweisungen hinzuzufügen.</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">Noch keine Caption. Klick auf &quot;Bearbeiten&quot; um Text und Anweisungen hinzuzufügen.</p>
               )}
             </CardContent>
           </Card>
@@ -373,7 +373,7 @@ export function PostDetail({ post }: { post: PostData }) {
           {post.event && (
             <Card>
               <CardContent className="flex items-center justify-between p-4">
-                <div><p className="text-xs text-gray-500">Verknüpftes Event</p><p className="font-medium">{post.event.title}</p></div>
+                <div><p className="text-xs text-gray-500 dark:text-gray-400">Verknüpftes Event</p><p className="font-medium">{post.event.title}</p></div>
                 <Link href={`/kalender/${post.event.id}`}><Button variant="outline" size="sm">Ansehen</Button></Link>
               </CardContent>
             </Card>
@@ -383,7 +383,7 @@ export function PostDetail({ post }: { post: PostData }) {
               <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-2">
                   <Lightbulb className="h-4 w-4 text-[#C5A572]" />
-                  <div><p className="text-xs text-gray-500">Konzept</p><p className="font-medium">{post.concept.name}</p></div>
+                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Konzept</p><p className="font-medium">{post.concept.name}</p></div>
                 </div>
                 <Link href={`/konzepte/${post.concept.id}`}><Button variant="outline" size="sm">Ansehen</Button></Link>
               </CardContent>
@@ -394,7 +394,7 @@ export function PostDetail({ post }: { post: PostData }) {
 
       {/* Timestamps */}
       <Card>
-        <CardContent className="flex gap-6 p-4 text-xs text-gray-400">
+        <CardContent className="flex gap-6 p-4 text-xs text-gray-400 dark:text-gray-500">
           <span><Clock className="mr-1 inline h-3 w-3" />Erstellt: {new Date(post.created_at).toLocaleDateString("de-CH")}</span>
           {post.published_at && <span>Veröffentlicht: {new Date(post.published_at).toLocaleDateString("de-CH")}</span>}
         </CardContent>

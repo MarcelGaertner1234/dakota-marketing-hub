@@ -8,8 +8,8 @@ export default async function EinstellungenPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-[#2C2C2C]">Einstellungen</h1>
-        <p className="text-gray-500">Team und Konfiguration verwalten</p>
+        <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">Einstellungen</h1>
+        <p className="text-gray-500 dark:text-gray-400">Team und Konfiguration verwalten</p>
       </div>
 
       <TeamSettings team={team ?? []} />
@@ -21,9 +21,9 @@ export default async function EinstellungenPage() {
         <CardContent>
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-green-500" />
-            <span className="text-sm font-medium text-green-700">Verbunden</span>
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">Verbunden</span>
           </div>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             Projekt: Dakota | Region: Europe
           </p>
         </CardContent>

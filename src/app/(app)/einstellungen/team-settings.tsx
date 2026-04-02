@@ -121,7 +121,7 @@ export default function TeamSettings({ team }: { team: TeamMember[] }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium">{m.name}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {ROLE_LABELS[m.role] || m.role}
                   </p>
                 </div>
@@ -147,7 +147,7 @@ export default function TeamSettings({ team }: { team: TeamMember[] }) {
               </div>
             ))}
             {(!team || team.length === 0) && (
-              <p className="text-sm text-gray-500 text-center py-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                 Noch keine Team-Mitglieder vorhanden.
               </p>
             )}

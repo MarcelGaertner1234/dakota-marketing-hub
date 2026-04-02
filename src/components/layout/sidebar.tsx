@@ -12,9 +12,13 @@ import {
   Settings,
   Menu,
   X,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
+import { useTheme } from "next-themes"
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -29,6 +33,13 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
+
+  function cycleTheme() {
+    if (theme === "light") setTheme("dark")
+    else if (theme === "dark") setTheme("system")
+    else setTheme("light")
+  }
 
   return (
     <>
@@ -96,10 +107,27 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="border-t border-white/10 px-6 py-4">
-          <p className="text-xs text-gray-500">Dakota Air Lounge</p>
-          <p className="text-xs text-gray-500">Meiringen</p>
+        {/* Theme Toggle + Footer */}
+        <div className="border-t border-white/10 px-6 py-4 space-y-3">
+          <button
+            type="button"
+            onClick={cycleTheme}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
+            title={`Theme: ${theme === "light" ? "Hell" : theme === "dark" ? "Dunkel" : "System"}`}
+          >
+            {theme === "dark" ? (
+              <Moon className="h-5 w-5 shrink-0" />
+            ) : theme === "light" ? (
+              <Sun className="h-5 w-5 shrink-0" />
+            ) : (
+              <Monitor className="h-5 w-5 shrink-0" />
+            )}
+            {theme === "dark" ? "Dunkel" : theme === "light" ? "Hell" : "System"}
+          </button>
+          <div>
+            <p className="text-xs text-gray-500">Dakota Air Lounge</p>
+            <p className="text-xs text-gray-500">Meiringen</p>
+          </div>
         </div>
       </aside>
     </>
