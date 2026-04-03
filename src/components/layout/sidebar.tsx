@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -17,8 +18,9 @@ import {
   Monitor,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useTheme } from "next-themes"
+import { BRAND_ASSETS } from "@/lib/brand"
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -33,16 +35,19 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
-
-  useEffect(() => { setMounted(true) }, [])
 
   function cycleTheme() {
     if (theme === "light") setTheme("dark")
     else if (theme === "dark") setTheme("system")
     else setTheme("light")
   }
+
+  const themeLabel =
+    theme === "dark" ? "Dunkel" : theme === "light" ? "Hell" : "System"
+
+  const ThemeIcon =
+    theme === "dark" ? Moon : theme === "light" ? Sun : Monitor
 
   return (
     <>
@@ -71,13 +76,30 @@ export function Sidebar() {
       >
         {/* Logo */}
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
-          <div>
-            <h1 className="font-serif text-xl font-bold tracking-wide">
-              DAKOTA <span className="text-[#C5A572]">HUB</span>
-            </h1>
-            <p className="text-xs tracking-widest text-[#C5A572]">
-              MARKETING TOOL
-            </p>
+          <div className="w-full max-w-[184px] rounded-2xl bg-white px-3 py-3 text-[#2C2C2C] shadow-sm ring-1 ring-white/10">
+            <div className="flex items-center gap-3">
+              <div className="overflow-hidden rounded-full border border-[#E7DED1] bg-white p-1">
+                <Image
+                  src={BRAND_ASSETS.hotelLogo}
+                  alt="Dakota Hotel Logo"
+                  width={54}
+                  height={54}
+                  className="h-[54px] w-[54px] object-contain"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Image
+                  src={BRAND_ASSETS.airLoungeLogo}
+                  alt="Air Lounge Logo"
+                  width={170}
+                  height={88}
+                  className="h-auto w-full object-contain"
+                />
+                <p className="mt-2 text-[10px] font-medium tracking-[0.32em] text-[#C5A572] uppercase">
+                  Marketing Hub
+                </p>
+              </div>
+            </div>
           </div>
           <button onClick={() => setOpen(false)} className="md:hidden">
             <X className="h-5 w-5" />
@@ -116,18 +138,10 @@ export function Sidebar() {
             type="button"
             onClick={cycleTheme}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
-            title={`Theme: ${theme === "light" ? "Hell" : theme === "dark" ? "Dunkel" : "System"}`}
+            title={`Theme: ${themeLabel}`}
           >
-            {!mounted ? (
-              <Monitor className="h-5 w-5 shrink-0" />
-            ) : theme === "dark" ? (
-              <Moon className="h-5 w-5 shrink-0" />
-            ) : theme === "light" ? (
-              <Sun className="h-5 w-5 shrink-0" />
-            ) : (
-              <Monitor className="h-5 w-5 shrink-0" />
-            )}
-            {!mounted ? "System" : theme === "dark" ? "Dunkel" : theme === "light" ? "Hell" : "System"}
+            <ThemeIcon className="h-5 w-5 shrink-0" />
+            {themeLabel}
           </button>
           <div>
             <p className="text-xs text-gray-500">Dakota Air Lounge</p>

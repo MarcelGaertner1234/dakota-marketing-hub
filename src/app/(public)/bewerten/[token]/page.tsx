@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Star, Gift, Loader2 } from "lucide-react"
+import { BRAND_ASSETS } from "@/lib/brand"
 
 function StarInput({
   label,
@@ -86,13 +88,31 @@ export default function BewertungPage() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] dark:bg-gray-950 p-4">
-        <Card className="w-full max-w-md text-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] p-4 dark:bg-gray-950">
+        <Card className="w-full max-w-md border-[#E7DED1] bg-white text-center shadow-xl shadow-black/5">
           <CardContent className="space-y-4 pt-8 pb-8">
+            <div className="mx-auto mb-2 flex items-center justify-center gap-3 rounded-full bg-[#F8F6F3] px-4 py-2">
+              <div className="overflow-hidden rounded-full border border-[#E7DED1] bg-white p-1">
+                <Image
+                  src={BRAND_ASSETS.hotelLogo}
+                  alt="Dakota Hotel"
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 object-contain"
+                />
+              </div>
+              <Image
+                src={BRAND_ASSETS.airLoungeLogo}
+                alt="Air Lounge"
+                width={150}
+                height={78}
+                className="h-12 w-auto object-contain"
+              />
+            </div>
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <Gift className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-[#2C2C2C] dark:text-gray-100">Merci viumau!</h2>
+            <h2 className="text-2xl text-[#2C2C2C] dark:text-gray-100">Merci viumau!</h2>
             <p className="text-gray-600 dark:text-gray-400">
               Danke für deine Bewertung. Als kleines Dankeschön:
             </p>
@@ -112,15 +132,28 @@ export default function BewertungPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] dark:bg-gray-950 p-4">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] p-4 dark:bg-gray-950">
+      <Card className="w-full max-w-md border-[#E7DED1] bg-white shadow-xl shadow-black/5">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2">
-            <h1 className="font-serif text-2xl font-bold text-[#2C2C2C] dark:text-gray-100">
-              DAKOTA <span className="text-[#C5A572]">AIR LOUNGE</span>
-            </h1>
+          <div className="mx-auto mb-4 flex flex-col items-center gap-3">
+            <div className="overflow-hidden rounded-full border border-[#E7DED1] bg-white p-1.5 shadow-sm">
+              <Image
+                src={BRAND_ASSETS.hotelLogo}
+                alt="Dakota Hotel"
+                width={78}
+                height={78}
+                className="h-[78px] w-[78px] object-contain"
+              />
+            </div>
+            <Image
+              src={BRAND_ASSETS.airLoungeLogo}
+              alt="Air Lounge"
+              width={280}
+              height={145}
+              className="h-auto w-[210px] object-contain sm:w-[240px]"
+            />
           </div>
-          <CardTitle className="text-lg">Wie war dein Erlebnis?</CardTitle>
+          <CardTitle className="text-xl text-[#2C2C2C] dark:text-gray-100">Wie war dein Erlebnis?</CardTitle>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Dein Feedback hilft uns, noch besser zu werden.
           </p>
@@ -169,6 +202,9 @@ export default function BewertungPage() {
 
             <p className="text-center text-xs text-gray-400 dark:text-gray-500">
               Du erhältst einen Goody-Code als Dankeschön!
+            </p>
+            <p className="text-center text-[11px] text-[#7C6951]">
+              Dakota Air Lounge · Amthausgasse 2 · Meiringen
             </p>
           </form>
         </CardContent>

@@ -3,14 +3,94 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Download, Copy, RefreshCw, Printer, Plus, Check, Loader2 } from "lucide-react"
 import QRCode from "qrcode"
+import { BRAND_ASSETS, BRAND_COLORS } from "@/lib/brand"
 
 const PRODUCTION_URL = "https://dakota-marketing-hub.vercel.app"
+const FONT_IMPORT_URL = "https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700&family=Calistoga&display=swap"
+
+const imageCache = new Map<string, Promise<HTMLImageElement>>()
+
+function loadImage(src: string) {
+  const cached = imageCache.get(src)
+  if (cached) return cached
+
+  const promise = new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error(`Image could not be loaded: ${src}`))
+    image.src = src
+  })
+
+  imageCache.set(src, promise)
+  return promise
+}
+
+async function ensureBrandFonts() {
+  if (typeof document === "undefined" || !("fonts" in document)) {
+    return
+  }
+
+  await Promise.all([
+    document.fonts.load("400 54px Calistoga"),
+    document.fonts.load("300 26px Assistant"),
+    document.fonts.ready,
+  ])
+}
+
+async function createBrandedQrDataUrl(url: string, size: number, logoSrc: string) {
+  const qrDataUrl = await QRCode.toDataURL(url, {
+    width: size,
+    margin: 2,
+    color: { dark: BRAND_COLORS.ink, light: "#FFFFFF" },
+    errorCorrectionLevel: "H",
+  })
+
+  const [qrImage, logoImage] = await Promise.all([
+    loadImage(qrDataUrl),
+    loadImage(logoSrc),
+  ])
+
+  const canvas = document.createElement("canvas")
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext("2d")
+  if (!ctx) {
+    return qrDataUrl
+  }
+
+  ctx.fillStyle = "#FFFFFF"
+  ctx.fillRect(0, 0, size, size)
+  ctx.drawImage(qrImage, 0, 0, size, size)
+
+  const logoSize = Math.round(size * 0.24)
+  const logoPadding = Math.round(size * 0.03)
+  const badgeX = (size - logoSize) / 2
+  const badgeY = (size - logoSize) / 2
+
+  ctx.fillStyle = "#FFFFFF"
+  ctx.beginPath()
+  ctx.roundRect(
+    badgeX - logoPadding,
+    badgeY - logoPadding,
+    logoSize + logoPadding * 2,
+    logoSize + logoPadding * 2,
+    Math.round(size * 0.04)
+  )
+  ctx.fill()
+
+  ctx.strokeStyle = "rgba(197, 165, 114, 0.35)"
+  ctx.lineWidth = Math.max(2, Math.round(size * 0.006))
+  ctx.stroke()
+  ctx.drawImage(logoImage, badgeX, badgeY, logoSize, logoSize)
+
+  return canvas.toDataURL("image/png")
+}
 
 export default function QRGeneratorPage() {
   const [tokens, setTokens] = useState<string[]>([])
@@ -20,6 +100,9 @@ export default function QRGeneratorPage() {
   const printRef = useRef<HTMLDivElement>(null)
 
   const baseUrl = useProduction ? PRODUCTION_URL : "http://localhost:3002"
+  const assetBaseUrl = typeof window === "undefined" ? PRODUCTION_URL : window.location.origin
+  const hotelLogoUrl = `${assetBaseUrl}${BRAND_ASSETS.hotelLogo}`
+  const airLoungeLogoUrl = `${assetBaseUrl}${BRAND_ASSETS.airLoungeLogo}`
 
   useEffect(() => {
     if (tokens.length === 0) {
@@ -34,18 +117,13 @@ export default function QRGeneratorPage() {
       for (const token of tokens) {
         const reviewUrl = `${baseUrl}/bewerten/${token}`
         try {
-          urls[token] = await QRCode.toDataURL(reviewUrl, {
-            width: 400,
-            margin: 2,
-            color: { dark: "#2C2C2C", light: "#FFFFFF" },
-            errorCorrectionLevel: "M",
-          })
+          urls[token] = await createBrandedQrDataUrl(reviewUrl, 400, hotelLogoUrl)
         } catch { /* ignore */ }
       }
       setQrDataUrls(urls)
     }
     if (tokens.length > 0) generateQRs()
-  }, [tokens, baseUrl])
+  }, [tokens, baseUrl, hotelLogoUrl])
 
   function addToken() {
     setTokens([...tokens, Math.random().toString(36).substring(2, 10)])
@@ -74,21 +152,14 @@ export default function QRGeneratorPage() {
     setDownloading(index)
     try {
       const reviewUrl = `${baseUrl}/bewerten/${token}`
+      const qrDataUrl = await createBrandedQrDataUrl(reviewUrl, 600, hotelLogoUrl)
+      await ensureBrandFonts()
 
-      // Generate QR as data URL
-      const qrDataUrl = await QRCode.toDataURL(reviewUrl, {
-        width: 600,
-        margin: 2,
-        color: { dark: "#2C2C2C", light: "#FFFFFF" },
-        errorCorrectionLevel: "M",
-      })
-
-      // Load QR image
-      const qrImg = new Image()
-      await new Promise<void>((resolve) => {
-        qrImg.onload = () => resolve()
-        qrImg.src = qrDataUrl
-      })
+      const [qrImg, hotelLogoImg, airLoungeLogoImg] = await Promise.all([
+        loadImage(qrDataUrl),
+        loadImage(hotelLogoUrl),
+        loadImage(airLoungeLogoUrl),
+      ])
 
       // Draw card on canvas
       const W = 900
@@ -98,60 +169,64 @@ export default function QRGeneratorPage() {
       canvas.height = H
       const ctx = canvas.getContext("2d")!
 
-      // White background
+      // Background
       ctx.fillStyle = "#FFFFFF"
       ctx.fillRect(0, 0, W, H)
 
-      // Gold accent line
-      ctx.fillStyle = "#C5A572"
-      ctx.fillRect(W / 2 - 60, 70, 120, 5)
+      // Brand header
+      const brandBoxX = 84
+      const brandBoxY = 44
+      const brandBoxW = W - 168
+      const brandBoxH = 222
+      ctx.fillStyle = BRAND_COLORS.paper
+      ctx.beginPath()
+      ctx.roundRect(brandBoxX, brandBoxY, brandBoxW, brandBoxH, 34)
+      ctx.fill()
 
-      // DAKOTA
-      ctx.fillStyle = "#2C2C2C"
-      ctx.font = "bold 72px Georgia, serif"
-      ctx.textAlign = "center"
-      ctx.textBaseline = "middle"
-      ctx.fillText("DAKOTA", W / 2, 145)
+      const hotelLogoSize = 118
+      ctx.drawImage(hotelLogoImg, W / 2 - hotelLogoSize / 2, 58, hotelLogoSize, hotelLogoSize)
 
-      // AIR LOUNGE
-      ctx.fillStyle = "#C5A572"
-      ctx.font = "600 30px system-ui, sans-serif"
-      ctx.fillText("A I R   L O U N G E", W / 2, 195)
+      const airLogoW = 372
+      const airLogoH = airLogoW * (airLoungeLogoImg.naturalHeight / airLoungeLogoImg.naturalWidth)
+      ctx.drawImage(airLoungeLogoImg, (W - airLogoW) / 2, 154, airLogoW, airLogoH)
 
-      // MEIRINGEN
-      ctx.fillStyle = "#BBBBBB"
-      ctx.font = "400 18px system-ui, sans-serif"
-      ctx.fillText("MEIRINGEN  ·  BERNER OBERLAND", W / 2, 235)
+      ctx.fillStyle = BRAND_COLORS.gold
+      ctx.fillRect(W / 2 - 84, 250, 168, 4)
 
       // QR background box
-      const qrSize = 440
-      const qrBoxPad = 30
+      const qrSize = 430
+      const qrBoxPad = 36
       const qrBoxW = qrSize + qrBoxPad * 2
       const qrBoxX = (W - qrBoxW) / 2
-      const qrBoxY = 280
-      ctx.fillStyle = "#F7F7F7"
+      const qrBoxY = 316
+      ctx.fillStyle = BRAND_COLORS.paperMuted
       ctx.beginPath()
-      ctx.roundRect(qrBoxX, qrBoxY, qrBoxW, qrBoxW, 20)
+      ctx.roundRect(qrBoxX, qrBoxY, qrBoxW, qrBoxW, 28)
       ctx.fill()
 
       // QR code image
       ctx.drawImage(qrImg, qrBoxX + qrBoxPad, qrBoxY + qrBoxPad, qrSize, qrSize)
 
       // "Bewerte dein Erlebnis!"
-      const textY = qrBoxY + qrBoxW + 50
-      ctx.fillStyle = "#2C2C2C"
-      ctx.font = "bold 38px system-ui, sans-serif"
+      const textY = qrBoxY + qrBoxW + 74
+      ctx.fillStyle = BRAND_COLORS.ink
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.font = "400 50px Calistoga, serif"
       ctx.fillText("Bewerte dein Erlebnis!", W / 2, textY)
 
       // Subtitle
-      ctx.fillStyle = "#999999"
-      ctx.font = "400 24px system-ui, sans-serif"
-      ctx.fillText("Scanne den QR-Code mit deinem Handy", W / 2, textY + 45)
-      ctx.fillText("und erhalte ein Goody!", W / 2, textY + 80)
+      ctx.fillStyle = "#756A5C"
+      ctx.font = "300 24px Assistant, sans-serif"
+      ctx.fillText("Scanne den QR-Code mit deinem Handy", W / 2, textY + 48)
+      ctx.fillText("und sichere dir dein Dakota-Goody", W / 2, textY + 84)
 
       // Bottom gold bar
-      ctx.fillStyle = "#C5A572"
-      ctx.fillRect(W / 2 - 60, H - 60, 120, 5)
+      ctx.fillStyle = BRAND_COLORS.gold
+      ctx.fillRect(W / 2 - 72, H - 72, 144, 4)
+      ctx.fillStyle = "#756A5C"
+      ctx.font = "300 18px Assistant, sans-serif"
+      ctx.fillText("Dakota Air Lounge · Meiringen", W / 2, H - 38)
 
       // Download
       const a = document.createElement("a")
@@ -167,28 +242,36 @@ export default function QRGeneratorPage() {
     const printWindow = window.open("", "_blank")
     if (!printWindow) return
 
-    const cards = tokens.map((token, i) => {
+    const cards = tokens.map((token) => {
       const qrUrl = qrDataUrls[token] || ""
       return `
-        <div style="width:297px;height:420px;border:1px solid #e5e5e5;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;page-break-inside:avoid;font-family:system-ui,-apple-system,sans-serif;background:white;">
-          <div style="width:60px;height:3px;background:#C5A572;border-radius:2px;margin-bottom:16px;"></div>
-          <h2 style="margin:0;font-size:22px;font-weight:800;color:#2C2C2C;letter-spacing:1px;">DAKOTA</h2>
-          <h3 style="margin:2px 0 0;font-size:14px;font-weight:600;color:#C5A572;letter-spacing:3px;">AIR LOUNGE</h3>
-          <p style="margin:4px 0 0;font-size:10px;color:#999;letter-spacing:1px;">MEIRINGEN · BERNER OBERLAND</p>
-          <div style="margin:20px 0;padding:12px;background:#fafafa;border-radius:12px;">
+        <div style="width:297px;height:420px;border:1px solid #E7DED1;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;page-break-inside:avoid;font-family:'Assistant',sans-serif;font-weight:300;background:white;box-sizing:border-box;">
+          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;background:#F8F6F3;border-radius:18px;padding:14px 12px 12px;">
+            <div style="display:flex;align-items:center;justify-content:center;border:1px solid #E7DED1;border-radius:999px;background:white;padding:4px;">
+              <img src="${hotelLogoUrl}" style="width:54px;height:54px;object-fit:contain;" alt="Dakota Hotel" />
+            </div>
+            <img src="${airLoungeLogoUrl}" style="width:148px;height:auto;object-fit:contain;" alt="Air Lounge" />
+          </div>
+          <div style="margin:18px 0 14px;padding:12px;background:#F3EEE6;border-radius:18px;">
             <img src="${qrUrl}" style="width:180px;height:180px;" alt="QR" />
           </div>
-          <p style="margin:0;font-size:14px;font-weight:600;color:#2C2C2C;">Bewerte dein Erlebnis!</p>
-          <p style="margin:6px 0 0;font-size:11px;color:#888;text-align:center;line-height:1.4;">Scanne den QR-Code mit deinem<br/>Handy und erhalte ein Goody 🎁</p>
-          <div style="margin-top:16px;width:48px;height:3px;background:#C5A572;border-radius:2px;"></div>
+          <p style="margin:0;font-family:'Calistoga',serif;font-size:22px;color:#2C2C2C;text-align:center;">Bewerte dein Erlebnis!</p>
+          <p style="margin:8px 0 0;font-size:11px;color:#756A5C;text-align:center;line-height:1.45;">Scanne den QR-Code mit deinem<br/>Handy und sichere dir dein Dakota-Goody</p>
+          <div style="margin-top:14px;width:52px;height:3px;background:#C5A572;border-radius:999px;"></div>
+          <p style="margin:12px 0 0;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#7C6951;">Dakota Air Lounge · Meiringen</p>
         </div>
       `
     }).join("")
 
     printWindow.document.write(`
       <html>
-        <head><title>Dakota Tischkarten</title></head>
-        <body style="margin:0;padding:20px;display:flex;flex-wrap:wrap;gap:16px;justify-content:center;">
+        <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="${FONT_IMPORT_URL}" rel="stylesheet">
+          <title>Dakota Tischkarten</title>
+        </head>
+        <body style="margin:0;padding:20px;display:flex;flex-wrap:wrap;gap:16px;justify-content:center;background:#F8F6F3;">
           ${cards}
           <script>
             window.onload = function() {
@@ -209,6 +292,10 @@ export default function QRGeneratorPage() {
           <p className="text-gray-500 dark:text-gray-400">Tischkarten mit QR-Codes für Gäste-Bewertungen</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={addToken}>
+            <Plus className="mr-2 h-4 w-4" />
+            Neue Karte
+          </Button>
           <Button onClick={printCards} className="bg-[#C5A572] hover:bg-[#A08050]">
             <Printer className="mr-2 h-4 w-4" />
             Drucken
@@ -253,28 +340,46 @@ export default function QRGeneratorPage() {
           return (
             <Card key={token} className="overflow-hidden">
               {/* Printable Card Preview */}
-              <div id={`card-${index}`} className="bg-white p-6 flex flex-col items-center border-b">
-                <div className="w-12 h-0.5 bg-[#C5A572] rounded mb-4" />
-                <h2 className="text-xl font-extrabold text-[#2C2C2C] tracking-wide">DAKOTA</h2>
-                <h3 className="text-xs font-semibold text-[#C5A572] tracking-[3px] mt-0.5">AIR LOUNGE</h3>
-                <p className="text-[9px] text-gray-400 dark:text-gray-500 tracking-wider mt-1">MEIRINGEN · BERNER OBERLAND</p>
+              <div
+                id={`card-${index}`}
+                className="flex flex-col items-center border-b bg-white p-5"
+              >
+                <div className="w-full rounded-[1.25rem] bg-[#F8F6F3] px-4 py-4">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="rounded-full border border-[#E7DED1] bg-white p-1.5 shadow-sm">
+                      <img
+                        src={BRAND_ASSETS.hotelLogo}
+                        alt="Dakota Hotel"
+                        className="h-16 w-16 object-contain"
+                      />
+                    </div>
+                    <img
+                      src={BRAND_ASSETS.airLoungeLogo}
+                      alt="Air Lounge"
+                      className="h-auto w-40 object-contain"
+                    />
+                  </div>
+                </div>
 
-                <div className="my-4 rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
+                <div className="my-5 rounded-[1.25rem] bg-[#F3EEE6] p-3 shadow-inner">
                   {qrSrc ? (
                     <img src={qrSrc} alt={`QR Tisch ${index + 1}`} className="h-40 w-40" />
                   ) : (
-                    <div className="h-40 w-40 flex items-center justify-center">
+                    <div className="flex h-40 w-40 items-center justify-center">
                       <Loader2 className="h-6 w-6 animate-spin text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
 
-                <p className="text-sm font-semibold text-[#2C2C2C] dark:text-gray-100">Bewerte dein Erlebnis!</p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center mt-1 leading-relaxed">
-                  Scanne den QR-Code mit deinem<br />Handy und erhalte ein Goody 🎁
+                <p className="font-heading text-xl text-[#2C2C2C] dark:text-gray-100">Bewerte dein Erlebnis!</p>
+                <p className="mt-2 text-center text-[11px] leading-relaxed text-[#756A5C] dark:text-gray-400">
+                  Scanne den QR-Code mit deinem<br />Handy und sichere dir dein Dakota-Goody
                 </p>
 
-                <div className="mt-3 w-12 h-0.5 bg-[#C5A572] rounded" />
+                <div className="mt-4 h-0.5 w-12 rounded bg-[#C5A572]" />
+                <p className="mt-3 text-[10px] uppercase tracking-[0.18em] text-[#7C6951]">
+                  Dakota Air Lounge · Meiringen
+                </p>
               </div>
 
               {/* Actions */}

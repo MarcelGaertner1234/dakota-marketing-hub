@@ -1,10 +1,24 @@
 import type { Metadata } from "next"
-import { Geist } from "next/font/google"
+import { Assistant, Calistoga, Geist_Mono } from "next/font/google"
 import { ThemeProvider } from "next-themes"
 import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const assistant = Assistant({
+  variable: "--font-assistant",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+})
+
+const calistoga = Calistoga({
+  variable: "--font-calistoga",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+})
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 })
 
@@ -19,8 +33,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="de" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full bg-[#F8F6F3] dark:bg-gray-950 font-sans">
+    <html
+      lang="de"
+      className={`${assistant.variable} ${calistoga.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-full bg-[#F8F6F3] font-sans font-light dark:bg-gray-950">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>

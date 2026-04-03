@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import QRCode from "qrcode"
+import { BRAND_COLORS } from "@/lib/brand"
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url")
@@ -12,8 +13,8 @@ export async function GET(request: NextRequest) {
   const png = await QRCode.toBuffer(url, {
     width: size,
     margin: 2,
-    color: { dark: "#2C2C2C", light: "#FFFFFF" },
-    errorCorrectionLevel: "M",
+    color: { dark: BRAND_COLORS.ink, light: "#FFFFFF" },
+    errorCorrectionLevel: "H",
   })
 
   return new NextResponse(new Uint8Array(png), {
