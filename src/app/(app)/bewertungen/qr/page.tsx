@@ -43,6 +43,23 @@ async function ensureBrandFonts() {
   ])
 }
 
+function drawImageContain(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) {
+  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight)
+  const drawWidth = image.naturalWidth * scale
+  const drawHeight = image.naturalHeight * scale
+  const drawX = x + (width - drawWidth) / 2
+  const drawY = y + (height - drawHeight) / 2
+
+  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight)
+}
+
 async function createBrandedQrDataUrl(url: string, size: number, logoSrc: string) {
   const qrDataUrl = await QRCode.toDataURL(url, {
     width: size,
@@ -68,18 +85,20 @@ async function createBrandedQrDataUrl(url: string, size: number, logoSrc: string
   ctx.fillRect(0, 0, size, size)
   ctx.drawImage(qrImage, 0, 0, size, size)
 
-  const logoSize = Math.round(size * 0.24)
+  const logoRatio = logoImage.naturalWidth / logoImage.naturalHeight
+  const logoHeight = Math.round(size * 0.16)
+  const logoWidth = Math.round(Math.min(size * 0.24, logoHeight * logoRatio))
   const logoPadding = Math.round(size * 0.03)
-  const badgeX = (size - logoSize) / 2
-  const badgeY = (size - logoSize) / 2
+  const badgeX = (size - logoWidth) / 2
+  const badgeY = (size - logoHeight) / 2
 
   ctx.fillStyle = "#FFFFFF"
   ctx.beginPath()
   ctx.roundRect(
     badgeX - logoPadding,
     badgeY - logoPadding,
-    logoSize + logoPadding * 2,
-    logoSize + logoPadding * 2,
+    logoWidth + logoPadding * 2,
+    logoHeight + logoPadding * 2,
     Math.round(size * 0.04)
   )
   ctx.fill()
@@ -87,7 +106,7 @@ async function createBrandedQrDataUrl(url: string, size: number, logoSrc: string
   ctx.strokeStyle = "rgba(197, 165, 114, 0.35)"
   ctx.lineWidth = Math.max(2, Math.round(size * 0.006))
   ctx.stroke()
-  ctx.drawImage(logoImage, badgeX, badgeY, logoSize, logoSize)
+  drawImageContain(ctx, logoImage, badgeX, badgeY, logoWidth, logoHeight)
 
   return canvas.toDataURL("image/png")
 }
@@ -183,12 +202,8 @@ export default function QRGeneratorPage() {
       ctx.roundRect(brandBoxX, brandBoxY, brandBoxW, brandBoxH, 34)
       ctx.fill()
 
-      const hotelLogoSize = 118
-      ctx.drawImage(hotelLogoImg, W / 2 - hotelLogoSize / 2, 58, hotelLogoSize, hotelLogoSize)
-
-      const airLogoW = 372
-      const airLogoH = airLogoW * (airLoungeLogoImg.naturalHeight / airLoungeLogoImg.naturalWidth)
-      ctx.drawImage(airLoungeLogoImg, (W - airLogoW) / 2, 154, airLogoW, airLogoH)
+      drawImageContain(ctx, hotelLogoImg, W / 2 - 84, 54, 168, 92)
+      drawImageContain(ctx, airLoungeLogoImg, brandBoxX + 82, 138, brandBoxW - 164, 108)
 
       ctx.fillStyle = BRAND_COLORS.gold
       ctx.fillRect(W / 2 - 84, 250, 168, 4)
@@ -217,7 +232,7 @@ export default function QRGeneratorPage() {
 
       // Subtitle
       ctx.fillStyle = "#756A5C"
-      ctx.font = "300 24px Assistant, sans-serif"
+      ctx.font = "400 26px Assistant, sans-serif"
       ctx.fillText("Scanne den QR-Code mit deinem Handy", W / 2, textY + 48)
       ctx.fillText("und sichere dir dein Dakota-Goody", W / 2, textY + 84)
 
@@ -247,16 +262,17 @@ export default function QRGeneratorPage() {
       return `
         <div style="width:297px;height:420px;border:1px solid #E7DED1;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;page-break-inside:avoid;font-family:'Assistant',sans-serif;font-weight:300;background:white;box-sizing:border-box;">
           <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;background:#F8F6F3;border-radius:18px;padding:14px 12px 12px;">
-            <div style="display:flex;align-items:center;justify-content:center;border:1px solid #E7DED1;border-radius:999px;background:white;padding:4px;">
-              <img src="${hotelLogoUrl}" style="width:54px;height:54px;object-fit:contain;" alt="Dakota Hotel" />
+            <div style="display:flex;align-items:center;justify-content:center;min-height:42px;">
+              <img src="${hotelLogoUrl}" style="width:72px;max-height:42px;height:auto;object-fit:contain;" alt="Dakota Hotel" />
             </div>
-            <img src="${airLoungeLogoUrl}" style="width:148px;height:auto;object-fit:contain;" alt="Air Lounge" />
+            <img src="${airLoungeLogoUrl}" style="width:142px;max-height:72px;height:auto;object-fit:contain;" alt="Air Lounge" />
+            <div style="width:52px;height:3px;background:#C5A572;border-radius:999px;"></div>
           </div>
           <div style="margin:18px 0 14px;padding:12px;background:#F3EEE6;border-radius:18px;">
             <img src="${qrUrl}" style="width:180px;height:180px;" alt="QR" />
           </div>
           <p style="margin:0;font-family:'Calistoga',serif;font-size:22px;color:#2C2C2C;text-align:center;">Bewerte dein Erlebnis!</p>
-          <p style="margin:8px 0 0;font-size:11px;color:#756A5C;text-align:center;line-height:1.45;">Scanne den QR-Code mit deinem<br/>Handy und sichere dir dein Dakota-Goody</p>
+          <p style="margin:8px 0 0;font-size:12px;color:#5E5346;text-align:center;line-height:1.5;font-weight:400;">Scanne den QR-Code mit deinem<br/>Handy und sichere dir dein Dakota-Goody</p>
           <div style="margin-top:14px;width:52px;height:3px;background:#C5A572;border-radius:999px;"></div>
           <p style="margin:12px 0 0;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#7C6951;">Dakota Air Lounge · Meiringen</p>
         </div>
@@ -346,18 +362,17 @@ export default function QRGeneratorPage() {
               >
                 <div className="w-full rounded-[1.25rem] bg-[#F8F6F3] px-4 py-4">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="rounded-full border border-[#E7DED1] bg-white p-1.5 shadow-sm">
-                      <img
-                        src={BRAND_ASSETS.hotelLogo}
-                        alt="Dakota Hotel"
-                        className="h-16 w-16 object-contain"
-                      />
-                    </div>
+                    <img
+                      src={BRAND_ASSETS.hotelLogo}
+                      alt="Dakota Hotel"
+                      className="max-h-12 w-[5rem] object-contain"
+                    />
                     <img
                       src={BRAND_ASSETS.airLoungeLogo}
                       alt="Air Lounge"
-                      className="h-auto w-40 object-contain"
+                      className="max-h-20 w-36 object-contain"
                     />
+                    <div className="h-0.5 w-12 rounded bg-[#C5A572]" />
                   </div>
                 </div>
 
@@ -371,8 +386,8 @@ export default function QRGeneratorPage() {
                   )}
                 </div>
 
-                <p className="font-heading text-xl text-[#2C2C2C] dark:text-gray-100">Bewerte dein Erlebnis!</p>
-                <p className="mt-2 text-center text-[11px] leading-relaxed text-[#756A5C] dark:text-gray-400">
+                <p className="font-heading text-xl text-[#2C2C2C]">Bewerte dein Erlebnis!</p>
+                <p className="mt-2 text-center text-xs leading-relaxed font-medium text-[#5E5346]">
                   Scanne den QR-Code mit deinem<br />Handy und sichere dir dein Dakota-Goody
                 </p>
 
