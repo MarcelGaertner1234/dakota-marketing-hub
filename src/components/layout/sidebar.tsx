@@ -15,7 +15,6 @@ import {
   X,
   Sun,
   Moon,
-  Monitor,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -35,19 +34,17 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
 
   function cycleTheme() {
-    if (theme === "light") setTheme("dark")
-    else if (theme === "dark") setTheme("system")
-    else setTheme("light")
+    setTheme(resolvedTheme === "dark" ? "light" : "dark")
   }
 
   const themeLabel =
-    theme === "dark" ? "Dunkel" : theme === "light" ? "Hell" : "System"
+    resolvedTheme === "dark" ? "Dunkel" : "Hell"
 
   const ThemeIcon =
-    theme === "dark" ? Moon : theme === "light" ? Sun : Monitor
+    resolvedTheme === "dark" ? Moon : Sun
 
   return (
     <>
@@ -141,7 +138,7 @@ export function Sidebar() {
             title={`Theme: ${themeLabel}`}
           >
             <ThemeIcon className="h-5 w-5 shrink-0" />
-            {themeLabel}
+            {resolvedTheme === "dark" ? "Zu Light wechseln" : "Zu Dark wechseln"}
           </button>
           <div>
             <p className="text-xs text-gray-500">Dakota Air Lounge</p>
