@@ -95,15 +95,22 @@ export function registerLeadTools(server: McpServer) {
     "Create a new lead. Returns the created lead.",
     {
       name: z.string().describe("Lead name (person or organization)"),
-      lead_type: z.string().optional().describe("Type: privatperson, firma, verein (default: privatperson)"),
+      lead_type: z.string().optional().describe("Type: privatperson, firma, verein, behoerde, medien (default: privatperson)"),
       company: z.string().optional().describe("Company name"),
       email: z.string().optional().describe("Email address"),
       phone: z.string().optional().describe("Phone number"),
       address: z.string().optional().describe("Address"),
       notes: z.string().optional().describe("Notes"),
       tags: z.array(z.string()).optional().describe("Tags as string array"),
+      contact_person: z.string().optional().describe("Name of the contact person (e.g. 'Hans Müller')"),
+      contact_role: z.string().optional().describe("Role/position of contact person (e.g. 'Präsident', 'Marketing-Leiter')"),
+      story: z.string().optional().describe("Story/connection to Dakota — why this lead is relevant, what's the angle"),
+      trigger_points: z.array(z.string()).optional().describe("Trigger occasions that could activate the lead (e.g. ['Vereinsessen', 'GV', 'Sommerfest'])"),
+      temperature: z.enum(["kalt", "warm", "heiss"]).optional().describe("Lead temperature: kalt (no contact), warm (interested), heiss (close to deal)"),
+      next_action: z.string().optional().describe("Next step to take (e.g. 'Anrufen und Osterbrunch vorstellen')"),
+      next_action_date: z.string().optional().describe("Deadline for next action (YYYY-MM-DD)"),
     },
-    async ({ name, lead_type, company, email, phone, address, notes, tags }) => {
+    async ({ name, lead_type, company, email, phone, address, notes, tags, contact_person, contact_role, story, trigger_points, temperature, next_action, next_action_date }) => {
       try {
         const payload: Record<string, any> = {
           name,
@@ -115,6 +122,13 @@ export function registerLeadTools(server: McpServer) {
         if (address !== undefined) payload.address = address
         if (notes !== undefined) payload.notes = notes
         if (tags !== undefined) payload.tags = tags
+        if (contact_person !== undefined) payload.contact_person = contact_person
+        if (contact_role !== undefined) payload.contact_role = contact_role
+        if (story !== undefined) payload.story = story
+        if (trigger_points !== undefined) payload.trigger_points = trigger_points
+        if (temperature !== undefined) payload.temperature = temperature
+        if (next_action !== undefined) payload.next_action = next_action
+        if (next_action_date !== undefined) payload.next_action_date = next_action_date
 
         const { data, error } = await supabase
           .from("leads")
@@ -144,7 +158,14 @@ export function registerLeadTools(server: McpServer) {
       address: z.string().optional().describe("Updated address"),
       notes: z.string().optional().describe("Updated notes"),
       tags: z.array(z.string()).optional().describe("Updated tags"),
-      status: z.string().optional().describe("Updated status (e.g. new, contacted, qualified, won, lost)"),
+      status: z.string().optional().describe("Updated status (e.g. neu, kontaktiert, interessiert, gebucht, nachfassen, verloren)"),
+      contact_person: z.string().optional().describe("Updated contact person name"),
+      contact_role: z.string().optional().describe("Updated contact person role/position"),
+      story: z.string().optional().describe("Updated story/connection to Dakota"),
+      trigger_points: z.array(z.string()).optional().describe("Updated trigger occasions"),
+      temperature: z.enum(["kalt", "warm", "heiss"]).optional().describe("Updated lead temperature"),
+      next_action: z.string().optional().describe("Updated next action"),
+      next_action_date: z.string().optional().describe("Updated next action deadline (YYYY-MM-DD)"),
     },
     async ({ id, ...fields }) => {
       try {
