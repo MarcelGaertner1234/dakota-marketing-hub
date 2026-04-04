@@ -2,12 +2,13 @@ export const dynamic = "force-dynamic"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Users, Lightbulb, Star, CheckCircle2, Clock } from "lucide-react"
+import { Calendar, Users, Lightbulb, Star, CheckCircle2, Clock, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { createServerClient } from "@/lib/supabase/server"
 import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from "@/lib/constants"
 import { getReviewStats } from "@/lib/actions/reviews"
 import { OpenTasks } from "@/components/dashboard/open-tasks"
+import { OverdueLeads } from "@/components/dashboard/overdue-leads"
 
 export default async function DashboardPage() {
   const supabase = createServerClient()
@@ -18,7 +19,7 @@ export default async function DashboardPage() {
   monthEnd.setMonth(monthEnd.getMonth() + 1)
   const monthEndStr = monthEnd.toISOString().split("T")[0]
 
-  const [eventsRes, leadsRes, conceptsRes, reviewStats, tasksRes, upcomingRes] =
+  const [eventsRes, leadsRes, conceptsRes, reviewStats, tasksRes, upcomingRes, overdueRes] =
     await Promise.all([
       supabase
         .from("events")
@@ -46,6 +47,15 @@ export default async function DashboardPage() {
         .gte("start_date", now)
         .order("start_date")
         .limit(5),
+      supabase
+        .from("leads")
+        .select("id, name, contact_person, temperature, status, next_action, next_action_date")
+        .not("next_action", "is", null)
+        .not("next_action_date", "is", null)
+        .lte("next_action_date", now)
+        .not("status", "eq", "verloren")
+        .order("next_action_date", { ascending: true })
+        .limit(10),
     ])
 
   return (
@@ -163,6 +173,29 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Overdue Lead Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            Überfällige Lead-Aktionen
+            {(overdueRes.data?.length ?? 0) > 0 && (
+              <Badge className="bg-red-500 text-white text-xs">{overdueRes.data?.length}</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <OverdueLeads
+            leads={(overdueRes.data ?? []).map((lead) => ({
+              ...lead,
+              next_action: lead.next_action!,
+              next_action_date: lead.next_action_date!,
+              days_overdue: Math.max(0, Math.floor((Date.now() - new Date(lead.next_action_date + "T00:00:00").getTime()) / 86400000)),
+            }))}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }
