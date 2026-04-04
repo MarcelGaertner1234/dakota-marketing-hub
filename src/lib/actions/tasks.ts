@@ -42,6 +42,16 @@ export async function createTask(formData: FormData) {
   revalidatePath("/")
 }
 
+export async function updateTaskAssignment(taskId: string, assignedTo: string | null) {
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("tasks")
+    .update({ assigned_to: assignedTo, updated_at: new Date().toISOString() })
+    .eq("id", taskId)
+  if (error) throw error
+  revalidatePath("/")
+}
+
 export async function updateTaskStatus(taskId: string, status: string, eventId?: string) {
   const supabase = createServerClient()
   const update: Record<string, unknown> = {

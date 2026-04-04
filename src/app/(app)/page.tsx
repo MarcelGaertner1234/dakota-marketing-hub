@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Users, Lightbulb, Star, CheckCircle2, Clock, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { createServerClient } from "@/lib/supabase/server"
-import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from "@/lib/constants"
 import { getReviewStats } from "@/lib/actions/reviews"
+import { getTeamMembers } from "@/lib/actions/team"
 import { OpenTasks } from "@/components/dashboard/open-tasks"
+import { UpcomingEvents } from "@/components/dashboard/upcoming-events"
 import { OverdueLeads } from "@/components/dashboard/overdue-leads"
 
 export default async function DashboardPage() {
@@ -19,7 +20,7 @@ export default async function DashboardPage() {
   monthEnd.setMonth(monthEnd.getMonth() + 1)
   const monthEndStr = monthEnd.toISOString().split("T")[0]
 
-  const [eventsRes, leadsRes, conceptsRes, reviewStats, tasksRes, upcomingRes, overdueRes] =
+  const [eventsRes, leadsRes, conceptsRes, reviewStats, tasksRes, upcomingRes, overdueRes, teamMembers] =
     await Promise.all([
       supabase
         .from("events")
@@ -40,13 +41,13 @@ export default async function DashboardPage() {
         .select("*, assigned_member:team_members!tasks_assigned_to_fkey(name, color), event:events!tasks_event_id_fkey(id, title)")
         .in("status", ["todo", "in_progress"])
         .order("due_date", { ascending: true, nullsFirst: false })
-        .limit(5),
+        .limit(30),
       supabase
         .from("events")
-        .select("*")
+        .select("id, title, start_date, start_time, event_type")
         .gte("start_date", now)
         .order("start_date")
-        .limit(5),
+        .limit(20),
       supabase
         .from("leads")
         .select("id, name, contact_person, temperature, status, next_action, next_action_date")
@@ -56,6 +57,7 @@ export default async function DashboardPage() {
         .not("status", "eq", "verloren")
         .order("next_action_date", { ascending: true })
         .limit(10),
+      getTeamMembers(),
     ])
 
   return (
@@ -121,42 +123,13 @@ export default async function DashboardPage() {
             <CardTitle className="flex items-center gap-2 text-lg">
               <Clock className="h-5 w-5 text-[#C5A572]" />
               Nächste Events
+              {(upcomingRes.data?.length ?? 0) > 0 && (
+                <span className="text-sm font-normal text-gray-400">({upcomingRes.data?.length})</span>
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {upcomingRes.data && upcomingRes.data.length > 0 ? (
-              upcomingRes.data.map((event) => (
-                <Link key={event.id} href={`/kalender/${event.id}`}>
-                  <div className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <div
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: EVENT_TYPE_COLORS[event.event_type as keyof typeof EVENT_TYPE_COLORS] || "#6B7280" }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{event.title}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(event.start_date).toLocaleDateString("de-CH", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                        })}
-                        {event.start_time && ` · ${event.start_time.slice(0, 5)}`}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-xs shrink-0">
-                      {EVENT_TYPE_LABELS[event.event_type as keyof typeof EVENT_TYPE_LABELS] || event.event_type}
-                    </Badge>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
-                Keine anstehenden Events.{" "}
-                <Link href="/kalender/neu" className="text-[#C5A572] hover:underline">
-                  Event erstellen
-                </Link>
-              </p>
-            )}
+          <CardContent>
+            <UpcomingEvents events={upcomingRes.data ?? []} />
           </CardContent>
         </Card>
 
@@ -166,10 +139,13 @@ export default async function DashboardPage() {
             <CardTitle className="flex items-center gap-2 text-lg">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               Offene Aufgaben
+              {(tasksRes.data?.length ?? 0) > 0 && (
+                <span className="text-sm font-normal text-gray-400">({tasksRes.data?.length})</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <OpenTasks tasks={tasksRes.data ?? []} />
+            <OpenTasks tasks={tasksRes.data ?? []} teamMembers={teamMembers ?? []} />
           </CardContent>
         </Card>
       </div>
