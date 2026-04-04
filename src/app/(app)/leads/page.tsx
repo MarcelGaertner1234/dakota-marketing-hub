@@ -3,12 +3,16 @@ export const dynamic = "force-dynamic"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { getLeads } from "@/lib/actions/leads"
+import { getLeads, getLeadsWithRounds } from "@/lib/actions/leads"
 import { getTeamMembers } from "@/lib/actions/team"
-import { KanbanBoard } from "@/components/leads/kanban-board"
+import { LeadsTabs } from "@/components/leads/leads-tabs"
 
 export default async function LeadsPage() {
-  const [leads, teamMembers] = await Promise.all([getLeads(), getTeamMembers()])
+  const [leads, leadsWithRounds, teamMembers] = await Promise.all([
+    getLeads(),
+    getLeadsWithRounds(),
+    getTeamMembers(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -25,7 +29,11 @@ export default async function LeadsPage() {
         </Link>
       </div>
 
-      <KanbanBoard initialLeads={leads || []} teamMembers={teamMembers || []} />
+      <LeadsTabs
+        leads={leads || []}
+        leadsWithRounds={leadsWithRounds || []}
+        teamMembers={teamMembers || []}
+      />
     </div>
   )
 }

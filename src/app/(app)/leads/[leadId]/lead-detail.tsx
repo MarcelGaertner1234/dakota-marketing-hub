@@ -22,9 +22,20 @@ import {
   CalendarDays,
   Plus,
   Trash2,
+  RefreshCw,
+  RotateCcw,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Textarea as DialogTextarea } from "@/components/ui/textarea"
 import Link from "next/link"
-import { updateLead, linkLeadToEvent, unlinkLeadFromEvent } from "@/lib/actions/leads"
+import { updateLead, linkLeadToEvent, unlinkLeadFromEvent, startNewRound } from "@/lib/actions/leads"
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants"
 import type { LeadStatus, LeadType, EventType } from "@/types/database"
 import { LeadStatusSelect } from "./lead-status-select"
@@ -84,14 +95,42 @@ interface EventOption {
   event_type: string
 }
 
+interface RoundData {
+  id: string
+  round_number: number
+  reason: string
+  started_at: string
+  ended_at: string | null
+  outcome: string | null
+  started_member?: { name: string } | null
+  activities?: Array<{
+    id: string
+    activity_type: string
+    description: string
+    contacted_at: string
+    contacted_member?: { name: string } | null
+    event?: { id: string; title: string } | null
+  }>
+}
+
+interface TeamMemberOption {
+  id: string
+  name: string
+  color: string
+}
+
 export function LeadDetail({
   lead,
   linkedEvents,
   allEvents,
+  rounds = [],
+  teamMembers = [],
 }: {
   lead: LeadData
   linkedEvents: LinkedEvent[]
   allEvents: EventOption[]
+  rounds?: RoundData[]
+  teamMembers?: TeamMemberOption[]
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -100,6 +139,10 @@ export function LeadDetail({
 
   const [showEventPicker, setShowEventPicker] = useState(false)
   const [linkingEvent, startLinkTransition] = useTransition()
+  const [showNewRound, setShowNewRound] = useState(false)
+  const [newRoundReason, setNewRoundReason] = useState("")
+  const [newRoundMember, setNewRoundMember] = useState("")
+  const [roundPending, startRoundTransition] = useTransition()
 
   const status = lead.status as LeadStatus
 
@@ -178,24 +221,35 @@ export function LeadDetail({
             <p className="mt-1 text-gray-500 dark:text-gray-400">{lead.company}</p>
           )}
         </div>
-        <Button
-          variant={isEditing ? "outline" : "default"}
-          className={isEditing ? "" : "bg-[#C5A572] hover:bg-[#A08050]"}
-          onClick={() => {
-            setIsEditing(!isEditing)
-            setError(null)
-          }}
-        >
-          {isEditing ? (
-            <>
-              <X className="mr-2 h-4 w-4" /> Abbrechen
-            </>
-          ) : (
-            <>
-              <Pencil className="mr-2 h-4 w-4" /> Bearbeiten
-            </>
+        <div className="flex items-center gap-2">
+          {(status === "gebucht" || status === "verloren") && (
+            <Button
+              variant="outline"
+              onClick={() => setShowNewRound(true)}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Neuer Durchlauf
+            </Button>
           )}
-        </Button>
+          <Button
+            variant={isEditing ? "outline" : "default"}
+            className={isEditing ? "" : "bg-[#C5A572] hover:bg-[#A08050]"}
+            onClick={() => {
+              setIsEditing(!isEditing)
+              setError(null)
+            }}
+          >
+            {isEditing ? (
+              <>
+                <X className="mr-2 h-4 w-4" /> Abbrechen
+              </>
+            ) : (
+              <>
+                <Pencil className="mr-2 h-4 w-4" /> Bearbeiten
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {isEditing ? (
@@ -542,70 +596,180 @@ export function LeadDetail({
         </CardContent>
       </Card>
 
-      {/* Activity History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Kontakthistorie</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {lead.activities && lead.activities.length > 0 ? (
-            <div className="space-y-4">
-              {lead.activities
-                .sort(
-                  (a, b) =>
-                    new Date(b.contacted_at).getTime() -
-                    new Date(a.contacted_at).getTime()
-                )
-                .map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex gap-3 border-l-2 border-[#C5A572] pl-4"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className="text-xs capitalize"
-                        >
-                          {activity.activity_type}
-                        </Badge>
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
-                          {new Date(activity.contacted_at).toLocaleDateString(
-                            "de-CH",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
-                        {activity.description}
-                      </p>
-                      {activity.contacted_member && (
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          von {activity.contacted_member.name}
-                        </p>
-                      )}
-                      {activity.event && (
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          Event: {activity.event.title}
-                        </p>
-                      )}
-                    </div>
+      {/* Kontakthistorie — nach Durchläufen gruppiert */}
+      {rounds.length > 0 ? (
+        <div className="space-y-4">
+          {rounds.map((round) => (
+            <Card key={round.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <RefreshCw className="h-4 w-4 text-[#C5A572]" />
+                    Durchlauf #{round.round_number}: {round.reason}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {round.outcome && (
+                      <Badge
+                        className="text-[10px]"
+                        style={{
+                          backgroundColor: LEAD_STATUS_COLORS[round.outcome as LeadStatus],
+                          color: "white",
+                        }}
+                      >
+                        {LEAD_STATUS_LABELS[round.outcome as LeadStatus]}
+                      </Badge>
+                    )}
+                    {!round.ended_at && (
+                      <Badge variant="outline" className="text-[10px] border-green-500 text-green-600">
+                        Aktiv
+                      </Badge>
+                    )}
                   </div>
-                ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              Noch keine Aktivitäten erfasst.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  {new Date(round.started_at).toLocaleDateString("de-CH", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                  {round.ended_at && (
+                    <>
+                      {" "}— {new Date(round.ended_at).toLocaleDateString("de-CH", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </>
+                  )}
+                  {round.started_member && ` · von ${round.started_member.name}`}
+                </p>
+              </CardHeader>
+              <CardContent>
+                {round.activities && round.activities.length > 0 ? (
+                  <div className="space-y-3">
+                    {round.activities
+                      .sort(
+                        (a, b) =>
+                          new Date(b.contacted_at).getTime() -
+                          new Date(a.contacted_at).getTime()
+                      )
+                      .map((activity) => (
+                        <div
+                          key={activity.id}
+                          className="flex gap-3 border-l-2 border-[#C5A572] pl-4"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs capitalize"
+                              >
+                                {activity.activity_type}
+                              </Badge>
+                              <span className="text-xs text-gray-400 dark:text-gray-500">
+                                {new Date(activity.contacted_at).toLocaleDateString(
+                                  "de-CH",
+                                  {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                              {activity.description}
+                            </p>
+                            {activity.contacted_member && (
+                              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                von {activity.contacted_member.name}
+                              </p>
+                            )}
+                            {activity.event && (
+                              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                Event: {activity.event.title}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    Noch keine Aktivitäten in diesem Durchlauf.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Kontakthistorie</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {lead.activities && lead.activities.length > 0 ? (
+              <div className="space-y-4">
+                {lead.activities
+                  .sort(
+                    (a, b) =>
+                      new Date(b.contacted_at).getTime() -
+                      new Date(a.contacted_at).getTime()
+                  )
+                  .map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex gap-3 border-l-2 border-[#C5A572] pl-4"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs capitalize"
+                          >
+                            {activity.activity_type}
+                          </Badge>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {new Date(activity.contacted_at).toLocaleDateString(
+                              "de-CH",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                          {activity.description}
+                        </p>
+                        {activity.contacted_member && (
+                          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                            von {activity.contacted_member.name}
+                          </p>
+                        )}
+                        {activity.event && (
+                          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                            Event: {activity.event.title}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 dark:text-gray-500">
+                Noch keine Aktivitäten erfasst.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Activity Form */}
       <Card>
@@ -616,6 +780,97 @@ export function LeadDetail({
           <ActivityForm leadId={lead.id} />
         </CardContent>
       </Card>
+
+      {/* Neuer Durchlauf Dialog */}
+      <Dialog
+        open={showNewRound}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowNewRound(false)
+            setNewRoundReason("")
+            setNewRoundMember("")
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Neuer Durchlauf starten</DialogTitle>
+            <DialogDescription>
+              {lead.name} wird auf <Badge className="text-[10px] bg-gray-500 text-white">Neu</Badge> zurückgesetzt.
+              Der aktuelle Durchlauf wird abgeschlossen.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Grund für den neuen Durchlauf *</label>
+              <DialogTextarea
+                placeholder="z.B. Einladung zum Sommerfest, Kooperationsanfrage..."
+                value={newRoundReason}
+                onChange={(e) => setNewRoundReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {teamMembers.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Wer startet den Durchlauf?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {teamMembers.map((member) => (
+                    <button
+                      key={member.id}
+                      onClick={() => setNewRoundMember(member.id === newRoundMember ? "" : member.id)}
+                      className={`flex items-center gap-2 rounded-lg border p-2 text-sm transition-colors ${
+                        newRoundMember === member.id
+                          ? "border-[#C5A572] bg-[#C5A572]/10"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <div
+                        className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                        style={{ backgroundColor: member.color }}
+                      >
+                        {member.name[0]}
+                      </div>
+                      {member.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowNewRound(false)
+                setNewRoundReason("")
+                setNewRoundMember("")
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              className="bg-[#C5A572] hover:bg-[#A08050]"
+              disabled={!newRoundReason.trim() || roundPending}
+              onClick={() => {
+                startRoundTransition(async () => {
+                  const result = await startNewRound(lead.id, newRoundReason.trim(), newRoundMember || undefined)
+                  if (result.success) {
+                    setShowNewRound(false)
+                    setNewRoundReason("")
+                    setNewRoundMember("")
+                    router.refresh()
+                  }
+                })
+              }}
+            >
+              {roundPending ? "Wird gestartet..." : "Durchlauf starten"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

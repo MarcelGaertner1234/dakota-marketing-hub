@@ -118,9 +118,24 @@ export interface LeadActivity {
   event_id: string | null
   contacted_by: string | null
   contacted_at: string
+  round_id: string | null
   // Joined
   contacted_member?: TeamMember | null
   event?: Event | null
+}
+
+export interface LeadRound {
+  id: string
+  lead_id: string
+  round_number: number
+  reason: string
+  started_at: string
+  ended_at: string | null
+  started_by: string | null
+  outcome: LeadStatus | null
+  // Joined
+  started_member?: TeamMember | null
+  activities?: LeadActivity[]
 }
 
 export interface LeadEvent {
@@ -197,6 +212,7 @@ export interface Database {
       event_images: { Row: EventImage; Insert: Partial<EventImage> & { event_id: string; storage_path: string; file_name: string }; Update: Partial<EventImage> }
       leads: { Row: Lead; Insert: Partial<Lead> & { name: string }; Update: Partial<Lead> }
       lead_activities: { Row: LeadActivity; Insert: Partial<LeadActivity> & { lead_id: string; activity_type: string; description: string }; Update: Partial<LeadActivity> }
+      lead_rounds: { Row: LeadRound; Insert: Partial<LeadRound> & { lead_id: string; reason: string }; Update: Partial<LeadRound> }
       lead_events: { Row: LeadEvent; Insert: LeadEvent; Update: Partial<LeadEvent> }
       social_posts: { Row: SocialPost; Insert: Partial<SocialPost> & { platform: PlatformType }; Update: Partial<SocialPost> }
       social_post_images: { Row: SocialPostImage; Insert: Partial<SocialPostImage> & { post_id: string; storage_path: string; file_name: string }; Update: Partial<SocialPostImage> }
