@@ -53,10 +53,10 @@ export default async function DashboardPage() {
         .select("id, name, contact_person, temperature, status, next_action, next_action_date")
         .not("next_action", "is", null)
         .not("next_action_date", "is", null)
-        .lte("next_action_date", now)
+        .lte("next_action_date", new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0])
         .not("status", "eq", "verloren")
         .order("next_action_date", { ascending: true })
-        .limit(10),
+        .limit(15),
       getTeamMembers(),
     ])
 
@@ -154,8 +154,8 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            Überfällige Lead-Aktionen
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Lead-Aktionen
             {(overdueRes.data?.length ?? 0) > 0 && (
               <Badge className="bg-red-500 text-white text-xs">{overdueRes.data?.length}</Badge>
             )}
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
               ...lead,
               next_action: lead.next_action!,
               next_action_date: lead.next_action_date!,
-              days_overdue: Math.max(0, Math.floor((Date.now() - new Date(lead.next_action_date + "T00:00:00").getTime()) / 86400000)),
+              days_overdue: Math.floor((Date.now() - new Date(lead.next_action_date + "T00:00:00").getTime()) / 86400000),
             }))}
           />
         </CardContent>
