@@ -7,6 +7,7 @@ import Link from "next/link"
 import { createServerClient } from "@/lib/supabase/server"
 import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from "@/lib/constants"
 import { getReviewStats } from "@/lib/actions/reviews"
+import { OpenTasks } from "@/components/dashboard/open-tasks"
 
 export default async function DashboardPage() {
   const supabase = createServerClient()
@@ -157,44 +158,8 @@ export default async function DashboardPage() {
               Offene Aufgaben
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {tasksRes.data && tasksRes.data.length > 0 ? (
-              tasksRes.data.map((task) => (
-                <div key={task.id} className="flex items-center gap-3 rounded-lg border p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{task.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {task.event && (
-                        <Link
-                          href={`/kalender/${task.event.id}`}
-                          className="text-xs text-[#C5A572] hover:underline truncate"
-                        >
-                          {task.event.title}
-                        </Link>
-                      )}
-                      {task.due_date && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
-                          Fällig: {new Date(task.due_date).toLocaleDateString("de-CH")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {task.assigned_member && (
-                    <div
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: task.assigned_member.color }}
-                      title={task.assigned_member.name}
-                    >
-                      {task.assigned_member.name[0]}
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
-                Keine offenen Aufgaben.
-              </p>
-            )}
+          <CardContent>
+            <OpenTasks tasks={tasksRes.data ?? []} />
           </CardContent>
         </Card>
       </div>

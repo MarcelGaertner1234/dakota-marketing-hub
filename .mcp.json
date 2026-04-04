@@ -8,6 +8,15 @@
         "SUPABASE_URL": "${SUPABASE_URL}",
         "SUPABASE_SERVICE_KEY": "${SUPABASE_SERVICE_KEY}"
       }
+    },
+    "dakota-codex": {
+      "command": "npx",
+      "args": ["tsx", "mcp/index.ts"],
+      "cwd": "/Users/marcelgaertner/Desktop/Projekte/dakota-marketing-hub",
+      "env": {
+        "SUPABASE_URL": "${SUPABASE_URL}",
+        "SUPABASE_SERVICE_KEY": "${SUPABASE_SERVICE_KEY}"
+      }
     }
   }
 }
