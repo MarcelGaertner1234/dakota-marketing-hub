@@ -92,6 +92,8 @@ export interface EventImage {
   created_at: string
 }
 
+export type LeadTemperature = 'kalt' | 'warm' | 'heiss'
+
 export interface Lead {
   id: string
   name: string
@@ -103,6 +105,13 @@ export interface Lead {
   status: LeadStatus
   notes: string | null
   tags: string[] | null
+  contact_person: string | null
+  contact_role: string | null
+  story: string | null
+  trigger_points: string[] | null
+  temperature: LeadTemperature
+  next_action: string | null
+  next_action_date: string | null
   created_by: string | null
   created_at: string
   updated_at: string

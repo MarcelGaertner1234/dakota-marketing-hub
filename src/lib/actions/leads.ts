@@ -30,6 +30,11 @@ export async function createLead(formData: FormData): Promise<{ success: true } 
     ?.split(",")
     .map((t) => t.trim())
     .filter(Boolean) || []
+  const triggerPoints = (formData.get("trigger_points") as string)
+    ?.split(",")
+    .map((t) => t.trim())
+    .filter(Boolean) || []
+
   try {
     const { error } = await supabase.from("leads").insert({
       name: formData.get("name") as string,
@@ -40,6 +45,13 @@ export async function createLead(formData: FormData): Promise<{ success: true } 
       address: (formData.get("address") as string) || null,
       notes: (formData.get("notes") as string) || null,
       tags: tags.length > 0 ? tags : null,
+      contact_person: (formData.get("contact_person") as string) || null,
+      contact_role: (formData.get("contact_role") as string) || null,
+      story: (formData.get("story") as string) || null,
+      trigger_points: triggerPoints.length > 0 ? triggerPoints : null,
+      temperature: (formData.get("temperature") as string) || "kalt",
+      next_action: (formData.get("next_action") as string) || null,
+      next_action_date: (formData.get("next_action_date") as string) || null,
     })
     if (error) return { success: false, error: error.message }
     revalidatePath("/leads")
@@ -60,6 +72,13 @@ export async function updateLead(
     notes?: string | null
     lead_type?: string
     tags?: string[] | null
+    contact_person?: string | null
+    contact_role?: string | null
+    story?: string | null
+    trigger_points?: string[] | null
+    temperature?: string
+    next_action?: string | null
+    next_action_date?: string | null
   }
 ): Promise<{ success: true } | { success: false; error: string }> {
   const supabase = createServerClient()

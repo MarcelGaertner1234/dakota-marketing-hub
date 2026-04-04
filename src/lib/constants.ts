@@ -1,4 +1,4 @@
-import type { EventType, LeadStatus, TaskStatus, TaskPriority, PostStatus } from '@/types/database'
+import type { EventType, LeadStatus, LeadTemperature, TaskStatus, TaskPriority, PostStatus } from '@/types/database'
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   own_event: 'Eigenes Event',
@@ -30,6 +30,18 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   gebucht: '#10B981',
   nachfassen: '#8B5CF6',
   verloren: '#EF4444',
+}
+
+export const LEAD_TEMPERATURE_LABELS: Record<LeadTemperature, string> = {
+  kalt: 'Kalt',
+  warm: 'Warm',
+  heiss: 'Heiss',
+}
+
+export const LEAD_TEMPERATURE_COLORS: Record<LeadTemperature, string> = {
+  kalt: '#3B82F6',
+  warm: '#F59E0B',
+  heiss: '#EF4444',
 }
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {

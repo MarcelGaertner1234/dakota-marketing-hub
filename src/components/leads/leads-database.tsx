@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { RefreshCw, Search, ArrowUpDown, RotateCcw } from "lucide-react"
-import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants"
+import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_TEMPERATURE_LABELS, LEAD_TEMPERATURE_COLORS } from "@/lib/constants"
 import { startNewRound } from "@/lib/actions/leads"
-import type { LeadStatus } from "@/types/database"
+import type { LeadStatus, LeadTemperature } from "@/types/database"
 
 interface LeadWithRounds {
   id: string
@@ -37,6 +37,11 @@ interface LeadWithRounds {
   phone: string | null
   status: string
   tags: string[] | null
+  contact_person: string | null
+  contact_role: string | null
+  temperature: string
+  next_action: string | null
+  next_action_date: string | null
   created_at: string
   updated_at: string
   round_count: number
@@ -175,8 +180,9 @@ export function LeadsDatabase({
                   Name <ArrowUpDown className="h-3 w-3" />
                 </button>
               </TableHead>
-              <TableHead>Firma</TableHead>
+              <TableHead>Ansprechpartner</TableHead>
               <TableHead>Typ</TableHead>
+              <TableHead>Temp.</TableHead>
               <TableHead>
                 <button onClick={() => toggleSort("status")} className="flex items-center gap-1 font-medium">
                   Status <ArrowUpDown className="h-3 w-3" />
@@ -193,14 +199,14 @@ export function LeadsDatabase({
                   Letzte Aktivität <ArrowUpDown className="h-3 w-3" />
                 </button>
               </TableHead>
-              <TableHead>Tags</TableHead>
+              <TableHead>Nächste Aktion</TableHead>
               <TableHead className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {sorted.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-gray-400 py-8">
+                <TableCell colSpan={10} className="text-center text-gray-400 py-8">
                   Keine Leads gefunden.
                 </TableCell>
               </TableRow>
@@ -215,13 +221,33 @@ export function LeadsDatabase({
                       {lead.name}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-gray-500 dark:text-gray-400">
-                    {lead.company || "—"}
+                  <TableCell>
+                    {lead.contact_person ? (
+                      <div>
+                        <span className="text-sm">{lead.contact_person}</span>
+                        {lead.contact_role && (
+                          <p className="text-[10px] text-gray-400">{lead.contact_role}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {LEAD_TYPE_LABELS[lead.lead_type] || lead.lead_type}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className="text-[10px]"
+                      style={{
+                        backgroundColor: LEAD_TEMPERATURE_COLORS[(lead.temperature as LeadTemperature) || "kalt"],
+                        color: "white",
+                      }}
+                    >
+                      {LEAD_TEMPERATURE_LABELS[(lead.temperature as LeadTemperature) || "kalt"]}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -261,17 +287,19 @@ export function LeadsDatabase({
                       <span className="text-xs text-gray-400">—</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {lead.tags?.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-[10px]">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {(lead.tags?.length || 0) > 2 && (
-                        <span className="text-[10px] text-gray-400">+{(lead.tags?.length || 0) - 2}</span>
-                      )}
-                    </div>
+                  <TableCell className="max-w-[160px]">
+                    {lead.next_action ? (
+                      <div>
+                        <span className="text-xs text-gray-600 dark:text-gray-300 truncate block">{lead.next_action}</span>
+                        {lead.next_action_date && (
+                          <span className="text-[10px] text-gray-400">
+                            bis {new Date(lead.next_action_date).toLocaleDateString("de-CH", { day: "numeric", month: "short" })}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {canStartNewRound(lead.status) && (

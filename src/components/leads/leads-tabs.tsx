@@ -29,6 +29,11 @@ interface LeadWithRounds {
   phone: string | null
   status: string
   tags: string[] | null
+  contact_person: string | null
+  contact_role: string | null
+  temperature: string
+  next_action: string | null
+  next_action_date: string | null
   created_at: string
   updated_at: string
   round_count: number

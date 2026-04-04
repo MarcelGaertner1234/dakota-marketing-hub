@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createLead } from "@/lib/actions/leads"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, User, Flame, Zap, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -32,12 +32,13 @@ export default function NeuerLeadPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Kontakt-Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={handleCreate} className="space-y-4">
+      <form action={handleCreate} className="space-y-6">
+        {/* Basis-Infos */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Kontakt-Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Name / Organisation *</Label>
@@ -81,23 +82,118 @@ export default function NeuerLeadPage() {
                 <Input id="tags" name="tags" placeholder="brunch, firmenanlass, lokal" />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Ansprechpartner */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-[#C5A572]" />
+              Ansprechpartner
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="contact_person">Name</Label>
+                <Input id="contact_person" name="contact_person" placeholder="z.B. Hans Müller" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact_role">Rolle / Position</Label>
+                <Input id="contact_role" name="contact_role" placeholder="z.B. Präsident, Marketing-Leiter" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Story & Strategie */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-[#C5A572]" />
+              Story & Strategie
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="story">Story / Verbindung zu Dakota</Label>
+              <Textarea
+                id="story"
+                name="story"
+                rows={3}
+                placeholder="Warum ist dieser Lead relevant? Was ist die Verbindung? z.B. 'Vereinspräsident ist Stammgast, hat schon 2x Afterwork besucht. Sucht Location für Jahresessen.'"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="trigger_points">Trigger-Punkte (kommagetrennt)</Label>
+              <Input
+                id="trigger_points"
+                name="trigger_points"
+                placeholder="z.B. Vereinsessen, Generalversammlung, Sommerfest, Weihnachtsfeier"
+              />
+              <p className="text-xs text-gray-400">Anlässe die den Lead aktivieren könnten</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="temperature">Temperatur</Label>
+                <select
+                  id="temperature"
+                  name="temperature"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  defaultValue="kalt"
+                >
+                  <option value="kalt">Kalt — noch kein Kontakt</option>
+                  <option value="warm">Warm — Interesse vorhanden</option>
+                  <option value="heiss">Heiss — kurz vor Abschluss</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Nächste Aktion */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-[#C5A572]" />
+              Nächste Aktion
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="next_action">Was ist der nächste Schritt?</Label>
+                <Input
+                  id="next_action"
+                  name="next_action"
+                  placeholder="z.B. Anrufen und Osterbrunch vorstellen"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="next_action_date">Bis wann?</Label>
+                <Input id="next_action_date" name="next_action_date" type="date" />
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="notes">Notizen</Label>
-              <Textarea id="notes" name="notes" rows={3} placeholder="Wichtige Infos zum Lead..." />
+              <Textarea id="notes" name="notes" rows={3} placeholder="Weitere Infos..." />
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Link href="/leads">
-                <Button variant="outline">Abbrechen</Button>
-              </Link>
-              <Button type="submit" className="bg-[#C5A572] hover:bg-[#A08050]">
-                Lead speichern
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="flex justify-end gap-2">
+          <Link href="/leads">
+            <Button variant="outline">Abbrechen</Button>
+          </Link>
+          <Button type="submit" className="bg-[#C5A572] hover:bg-[#A08050]">
+            Lead speichern
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }

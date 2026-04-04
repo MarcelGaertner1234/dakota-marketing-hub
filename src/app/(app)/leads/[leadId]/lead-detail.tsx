@@ -24,6 +24,9 @@ import {
   Trash2,
   RefreshCw,
   RotateCcw,
+  Flame,
+  Zap,
+  User,
 } from "lucide-react"
 import {
   Dialog,
@@ -36,8 +39,8 @@ import {
 import { Textarea as DialogTextarea } from "@/components/ui/textarea"
 import Link from "next/link"
 import { updateLead, linkLeadToEvent, unlinkLeadFromEvent, startNewRound } from "@/lib/actions/leads"
-import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants"
-import type { LeadStatus, LeadType, EventType } from "@/types/database"
+import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_TEMPERATURE_LABELS, LEAD_TEMPERATURE_COLORS, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants"
+import type { LeadStatus, LeadType, LeadTemperature, EventType } from "@/types/database"
 import { LeadStatusSelect } from "./lead-status-select"
 import { ActivityForm } from "./activity-form"
 import { useRouter } from "next/navigation"
@@ -69,6 +72,13 @@ interface LeadData {
   status: string
   notes: string | null
   tags: string[] | null
+  contact_person: string | null
+  contact_role: string | null
+  story: string | null
+  trigger_points: string[] | null
+  temperature: string
+  next_action: string | null
+  next_action_date: string | null
   created_at: string
   activities?: Array<{
     id: string
@@ -176,6 +186,11 @@ export function LeadDetail({
         .map((t) => t.trim())
         .filter(Boolean) || []
 
+      const triggerPoints = (formData.get("trigger_points") as string)
+        ?.split(",")
+        .map((t) => t.trim())
+        .filter(Boolean) || []
+
       const result = await updateLead(lead.id, {
         name: formData.get("name") as string,
         company: (formData.get("company") as string) || null,
@@ -185,6 +200,13 @@ export function LeadDetail({
         notes: (formData.get("notes") as string) || null,
         lead_type: (formData.get("lead_type") as string) || "privatperson",
         tags: tags.length > 0 ? tags : null,
+        contact_person: (formData.get("contact_person") as string) || null,
+        contact_role: (formData.get("contact_role") as string) || null,
+        story: (formData.get("story") as string) || null,
+        trigger_points: triggerPoints.length > 0 ? triggerPoints : null,
+        temperature: (formData.get("temperature") as string) || "kalt",
+        next_action: (formData.get("next_action") as string) || null,
+        next_action_date: (formData.get("next_action_date") as string) || null,
       })
 
       if (result.success) {
@@ -337,6 +359,82 @@ export function LeadDetail({
                 />
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="contact_person">Ansprechpartner</Label>
+                  <Input
+                    id="contact_person"
+                    name="contact_person"
+                    defaultValue={lead.contact_person || ""}
+                    placeholder="z.B. Hans Müller"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact_role">Rolle / Position</Label>
+                  <Input
+                    id="contact_role"
+                    name="contact_role"
+                    defaultValue={lead.contact_role || ""}
+                    placeholder="z.B. Präsident"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="story">Story / Verbindung</Label>
+                <Textarea
+                  id="story"
+                  name="story"
+                  rows={3}
+                  defaultValue={lead.story || ""}
+                  placeholder="Warum ist dieser Lead relevant? Was ist die Connection?"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="trigger_points">Trigger-Punkte (kommagetrennt)</Label>
+                <Input
+                  id="trigger_points"
+                  name="trigger_points"
+                  defaultValue={lead.trigger_points?.join(", ") || ""}
+                  placeholder="z.B. Vereinsessen, GV, Sommerfest"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="temperature">Temperatur</Label>
+                  <select
+                    id="temperature"
+                    name="temperature"
+                    defaultValue={lead.temperature || "kalt"}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  >
+                    <option value="kalt">Kalt</option>
+                    <option value="warm">Warm</option>
+                    <option value="heiss">Heiss</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="next_action">Nächste Aktion</Label>
+                  <Input
+                    id="next_action"
+                    name="next_action"
+                    defaultValue={lead.next_action || ""}
+                    placeholder="z.B. Anrufen"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="next_action_date">Bis wann?</Label>
+                  <Input
+                    id="next_action_date"
+                    name="next_action_date"
+                    type="date"
+                    defaultValue={lead.next_action_date || ""}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Notizen</Label>
                 <Textarea
@@ -446,6 +544,88 @@ export function LeadDetail({
               </CardContent>
             </Card>
           </div>
+
+          {/* Ansprechpartner + Temperatur */}
+          {(lead.contact_person || lead.temperature) && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {lead.contact_person && (
+                <Card>
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <User className="h-5 w-5 text-[#C5A572]" />
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Ansprechpartner</p>
+                      <p className="font-medium">{lead.contact_person}</p>
+                      {lead.contact_role && (
+                        <p className="text-xs text-gray-400">{lead.contact_role}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {lead.temperature && (
+                <Card>
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <Flame className="h-5 w-5" style={{ color: LEAD_TEMPERATURE_COLORS[(lead.temperature as LeadTemperature) || "kalt"] }} />
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Temperatur</p>
+                      <Badge
+                        className="text-[11px]"
+                        style={{
+                          backgroundColor: LEAD_TEMPERATURE_COLORS[(lead.temperature as LeadTemperature) || "kalt"],
+                          color: "white",
+                        }}
+                      >
+                        {LEAD_TEMPERATURE_LABELS[(lead.temperature as LeadTemperature) || "kalt"]}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {lead.next_action && (
+                <Card className="border-l-4 border-l-[#C5A572]">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <Zap className="h-5 w-5 text-[#C5A572]" />
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Nächste Aktion</p>
+                      <p className="font-medium text-sm">{lead.next_action}</p>
+                      {lead.next_action_date && (
+                        <p className="text-xs text-gray-400">
+                          bis {new Date(lead.next_action_date).toLocaleDateString("de-CH", { day: "numeric", month: "short" })}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Story */}
+          {lead.story && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Story / Verbindung</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{lead.story}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Trigger-Punkte */}
+          {lead.trigger_points && lead.trigger_points.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-500" />
+              <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Trigger:</span>
+              <div className="flex flex-wrap gap-1">
+                {lead.trigger_points.map((tp: string) => (
+                  <Badge key={tp} variant="outline" className="border-amber-300 text-amber-700 dark:text-amber-400">
+                    {tp}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           {lead.tags && lead.tags.length > 0 && (
