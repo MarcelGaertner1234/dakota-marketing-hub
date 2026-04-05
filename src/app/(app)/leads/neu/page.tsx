@@ -13,7 +13,7 @@ export default function NeuerLeadPage() {
     "use server"
     const result = await createLead(formData)
     if (!result.success) {
-      throw new Error(result.error)
+      return // stay on form instead of crashing
     }
     redirect("/leads")
   }

@@ -52,10 +52,10 @@ export default async function BewertungenPage() {
         </Link>
       </div>
 
-      <Tabs defaultValue={0}>
+      <Tabs defaultValue="bewertungen">
         <TabsList>
-          <TabsTrigger value={0}>Bewertungen</TabsTrigger>
-          <TabsTrigger value={1} className="flex items-center gap-2">
+          <TabsTrigger value="bewertungen">Bewertungen</TabsTrigger>
+          <TabsTrigger value="goody" className="flex items-center gap-2">
             <Gift className="h-4 w-4" />
             Goody-Codes
             {openGoodyCodes > 0 && (
@@ -66,7 +66,7 @@ export default async function BewertungenPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={0}>
+        <TabsContent value="bewertungen">
           <div className="space-y-6">
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-3">
@@ -138,7 +138,7 @@ export default async function BewertungenPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value={1}>
+        <TabsContent value="goody">
           <GoodyTracker reviews={goodyReviews} />
         </TabsContent>
       </Tabs>

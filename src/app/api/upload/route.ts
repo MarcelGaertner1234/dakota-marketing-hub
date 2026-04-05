@@ -37,5 +37,21 @@ export async function POST(request: NextRequest) {
     .from(bucket)
     .getPublicUrl(fileName)
 
+  // Insert metadata into the appropriate image tracking table
+  if (bucket === "event-images" || bucket === "social-images") {
+    const table = bucket === "event-images" ? "event_images" : "social_post_images"
+    const idColumn = bucket === "event-images" ? "event_id" : "post_id"
+    const parentId = (formData.get("parent_id") as string) || null
+    if (parentId) {
+      await supabase.from(table).insert({
+        [idColumn]: parentId,
+        storage_path: fileName,
+        url: urlData.publicUrl,
+        file_name: file.name,
+        content_type: file.type,
+      })
+    }
+  }
+
   return NextResponse.json({ url: urlData.publicUrl, path: fileName })
 }

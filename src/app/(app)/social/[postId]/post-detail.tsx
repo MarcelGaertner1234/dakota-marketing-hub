@@ -43,6 +43,7 @@ interface PostData {
   scheduled_at: string | null
   published_at: string | null
   status: string
+  series_id: string | null
   series_order: number | null
   created_at: string
   event?: { id: string; title: string; start_date: string } | null
@@ -112,6 +113,8 @@ export function PostDetail({ post }: { post: PostData }) {
         caption: fullCaption,
         hashtags: hashtags.length > 0 ? hashtags : null,
         scheduled_at: (formData.get("scheduled_at") as string) || null,
+        series_id: (formData.get("series_id") as string) || null,
+        series_order: formData.get("series_order") ? Number(formData.get("series_order")) : null,
       })
       setIsEditing(false)
       router.refresh()
@@ -313,6 +316,16 @@ export function PostDetail({ post }: { post: PostData }) {
                 <div className="space-y-2">
                   <Label htmlFor="post_url">Link zum veröffentlichten Post</Label>
                   <Input id="post_url" name="post_url" type="url" defaultValue={postUrl} placeholder="https://instagram.com/p/..." />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="series_id">Serie (optional)</Label>
+                  <Input id="series_id" name="series_id" defaultValue={post.series_id || ""} placeholder="z.B. afterwork-launch" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="series_order">Reihenfolge in Serie</Label>
+                  <Input id="series_order" name="series_order" type="number" min={1} defaultValue={post.series_order ?? ""} placeholder="z.B. 1, 2, 3" />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4">

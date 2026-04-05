@@ -131,7 +131,9 @@ function LeadCard({
     ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
     : undefined
 
-  if (transform && (Math.abs(transform.x) > 3 || Math.abs(transform.y) > 3)) {
+  if (!transform) {
+    didDrag.current = false
+  } else if (Math.abs(transform.x) > 3 || Math.abs(transform.y) > 3) {
     didDrag.current = true
   }
 

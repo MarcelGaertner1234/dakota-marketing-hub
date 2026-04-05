@@ -7,7 +7,7 @@ export async function getLeads() {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from("leads")
-    .select("id, name, company, lead_type, status, tags")
+    .select("id, name, company, lead_type, status, tags, temperature, next_action, next_action_date")
     .order("created_at", { ascending: false })
   if (error) throw error
   return data
@@ -192,6 +192,7 @@ export async function addLeadActivity(formData: FormData) {
     round_id: currentRound?.id ?? null,
   })
   if (error) throw error
+  await supabase.from("leads").update({ updated_at: new Date().toISOString() }).eq("id", leadId)
   revalidatePath(`/leads/${leadId}`)
 }
 
@@ -225,6 +226,7 @@ export async function getLeadsWithRounds() {
     .from("lead_activities")
     .select("lead_id, activity_type, contacted_at")
     .order("contacted_at", { ascending: false })
+    .limit(500)
   if (actErr) throw actErr
 
   // Build last-activity map
@@ -287,12 +289,12 @@ export async function startNewRound(
     const nextNumber = (maxRound?.round_number || 0) + 1
 
     // Create new round
-    const { error: roundErr } = await supabase.from("lead_rounds").insert({
+    const { data: newRound, error: roundErr } = await supabase.from("lead_rounds").insert({
       lead_id: leadId,
       round_number: nextNumber,
       reason,
       started_by: startedBy || null,
-    })
+    }).select("id").single()
     if (roundErr) return { success: false, error: roundErr.message }
 
     // Reset lead status to "neu"
@@ -307,6 +309,7 @@ export async function startNewRound(
       activity_type: "status_change",
       description: `Neuer Durchlauf #${nextNumber} gestartet: ${reason}`,
       contacted_by: startedBy || null,
+      round_id: newRound?.id ?? null,
     })
 
     revalidatePath("/leads")

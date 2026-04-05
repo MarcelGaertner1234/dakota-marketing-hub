@@ -184,18 +184,9 @@ export function YearCalendar({ events, holidays, initialYear }: YearCalendarProp
     router.push(`${pathname}?year=${newYear}`)
   }
 
-  const yearEvents = events.filter((e) => {
-    const [y] = e.start_date.split("-").map(Number)
-    return y === year
-  })
-  const yearHolidays = holidays.filter((h) => {
-    const [y] = h.date.split("-").map(Number)
-    return y === year
-  })
-
   const allItems: CalendarEvent[] = [
-    ...yearEvents,
-    ...yearHolidays.map((h) => ({
+    ...events,
+    ...holidays.map((h) => ({
       id: `holiday-${h.date}`,
       title: h.name,
       start_date: h.date,

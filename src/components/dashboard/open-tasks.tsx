@@ -31,13 +31,16 @@ export function OpenTasks({
   tasks: Task[]
   teamMembers?: TeamMember[]
 }) {
-  const [pending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
+  const [pendingId, setPendingId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null)
 
   function handleComplete(taskId: string, eventId?: string) {
+    setPendingId(taskId)
     startTransition(async () => {
       await updateTaskStatus(taskId, "done", eventId)
+      setPendingId(null)
     })
   }
 
@@ -64,7 +67,7 @@ export function OpenTasks({
       {visible.map((task) => (
         <div
           key={task.id}
-          className={`flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${pending ? "opacity-60 pointer-events-none" : ""}`}
+          className={`flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${pendingId === task.id ? "opacity-60 pointer-events-none" : ""}`}
         >
           <Checkbox
             className="shrink-0"

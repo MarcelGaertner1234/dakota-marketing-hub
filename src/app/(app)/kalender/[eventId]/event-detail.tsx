@@ -116,7 +116,7 @@ export function EventDetail({
   const daysUntilEvent = Math.ceil(
     (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   )
-  const isInLeadTime = now >= warningDate && now < eventDate
+  const isInLeadTime = now >= warningDate && (now < eventDate || now.toDateString() === eventDate.toDateString())
 
   function handleSave(formData: FormData) {
     startTransition(async () => {

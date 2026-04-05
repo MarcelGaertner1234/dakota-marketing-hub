@@ -20,7 +20,12 @@ export default async function NeuesEventPage({
 
   async function handleCreate(formData: FormData) {
     "use server"
-    await createEvent(formData)
+    try {
+      await createEvent(formData)
+    } catch (e) {
+      // Return without redirect - user stays on form
+      return
+    }
     redirect("/kalender")
   }
 

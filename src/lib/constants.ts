@@ -70,13 +70,3 @@ export const PLATFORM_LABELS = {
   facebook: 'Facebook',
   tiktok: 'TikTok',
 } as const
-
-export const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
-  { href: '/kalender', label: 'Kalender', icon: 'Calendar' },
-  { href: '/leads', label: 'Leads', icon: 'Users' },
-  { href: '/konzepte', label: 'Konzepte', icon: 'Lightbulb' },
-  { href: '/social', label: 'Social Media', icon: 'Share2' },
-  { href: '/bewertungen', label: 'Bewertungen', icon: 'Star' },
-  { href: '/einstellungen', label: 'Einstellungen', icon: 'Settings' },
-] as const

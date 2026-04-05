@@ -199,12 +199,9 @@ export async function deleteEvent(id: string) {
   revalidatePath("/kalender")
 }
 
-export async function getHolidays(year?: number) {
+export async function getHolidays(year: number) {
   const supabase = createServerClient()
-  let query = supabase.from("holidays").select("*").order("date")
-  if (year) {
-    query = query.eq("year", year)
-  }
+  const query = supabase.from("holidays").select("*").order("date").eq("year", year)
   const { data, error } = await query
   if (error) throw error
   return data

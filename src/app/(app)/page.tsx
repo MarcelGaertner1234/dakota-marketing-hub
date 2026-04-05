@@ -167,7 +167,7 @@ export default async function DashboardPage() {
               ...lead,
               next_action: lead.next_action!,
               next_action_date: lead.next_action_date!,
-              days_overdue: Math.floor((Date.now() - new Date(lead.next_action_date + "T00:00:00").getTime()) / 86400000),
+              days_overdue: Math.floor((new Date(new Date().toISOString().split('T')[0] + "T00:00:00Z").getTime() - new Date(lead.next_action_date + "T00:00:00Z").getTime()) / 86400000),
             }))}
           />
         </CardContent>
