@@ -194,40 +194,41 @@ export default function QRGeneratorPage() {
       ctx.fillStyle = "#FFFFFF"
       ctx.fillRect(0, 0, W, H)
 
-      // Flugzeug-Hintergrund (halbtransparent, cover)
-      ctx.globalAlpha = 0.18
+      // Brand header
+      const brandBoxX = 84
+      const brandBoxY = 44
+      const brandBoxW = W - 168
+      const brandBoxH = 222
+      ctx.fillStyle = BRAND_COLORS.paper
+      ctx.beginPath()
+      ctx.roundRect(brandBoxX, brandBoxY, brandBoxW, brandBoxH, 34)
+      ctx.fill()
+
+      // QR background box
+      const qrSize = 430
+      const qrBoxPad = 36
+      const qrBoxW = qrSize + qrBoxPad * 2
+      const qrBoxX = (W - qrBoxW) / 2
+      const qrBoxY = 316
+      ctx.fillStyle = BRAND_COLORS.paperMuted
+      ctx.beginPath()
+      ctx.roundRect(qrBoxX, qrBoxY, qrBoxW, qrBoxW, 28)
+      ctx.fill()
+
+      // Flugzeug-Wasserzeichen ÜBER die Boxen (vor QR + Text)
+      ctx.globalAlpha = 0.15
       const bgScale = Math.max(W / flugzeugBgImg.naturalWidth, H / flugzeugBgImg.naturalHeight)
       const bgW = flugzeugBgImg.naturalWidth * bgScale
       const bgH = flugzeugBgImg.naturalHeight * bgScale
       ctx.drawImage(flugzeugBgImg, (W - bgW) / 2, (H - bgH) / 2, bgW, bgH)
       ctx.globalAlpha = 1.0
 
-      // Brand header (halbtransparent damit Flugzeug durchscheint)
-      const brandBoxX = 84
-      const brandBoxY = 44
-      const brandBoxW = W - 168
-      const brandBoxH = 222
-      ctx.fillStyle = "rgba(248, 246, 243, 0.8)"
-      ctx.beginPath()
-      ctx.roundRect(brandBoxX, brandBoxY, brandBoxW, brandBoxH, 34)
-      ctx.fill()
-
+      // Logos auf Brand header
       drawImageContain(ctx, hotelLogoImg, W / 2 - 84, 54, 168, 92)
       drawImageContain(ctx, airLoungeLogoImg, brandBoxX + 82, 138, brandBoxW - 164, 108)
 
       ctx.fillStyle = BRAND_COLORS.gold
       ctx.fillRect(W / 2 - 84, 250, 168, 4)
-
-      // QR background box (halbtransparent)
-      const qrSize = 430
-      const qrBoxPad = 36
-      const qrBoxW = qrSize + qrBoxPad * 2
-      const qrBoxX = (W - qrBoxW) / 2
-      const qrBoxY = 316
-      ctx.fillStyle = "rgba(243, 238, 230, 0.8)"
-      ctx.beginPath()
-      ctx.roundRect(qrBoxX, qrBoxY, qrBoxW, qrBoxW, 28)
-      ctx.fill()
 
       // QR code image
       ctx.drawImage(qrImg, qrBoxX + qrBoxPad, qrBoxY + qrBoxPad, qrSize, qrSize)
