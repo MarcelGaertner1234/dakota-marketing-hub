@@ -9,4 +9,8 @@ export const BRAND_COLORS = {
 export const BRAND_ASSETS = {
   hotelLogo: "/branding/dakota-hotel-logo.jpeg",
   airLoungeLogo: "/branding/air-lounge-logo.png",
+  flugzeugBg: "/branding/flugzeug-bg.png",
 } as const
+
+export const GOOGLE_PLACE_ID = "ChIJpeH/AwCPj0dedwaIJHpPLQ"
+export const GOOGLE_REVIEW_URL = `https://search.google.com/local/writereview?placeid=${GOOGLE_PLACE_ID}`

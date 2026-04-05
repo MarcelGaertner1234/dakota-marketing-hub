@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Download, Copy, RefreshCw, Printer, Plus, Check, Loader2 } from "lucide-react"
 import QRCode from "qrcode"
-import { BRAND_ASSETS, BRAND_COLORS } from "@/lib/brand"
+import { BRAND_ASSETS, BRAND_COLORS, GOOGLE_REVIEW_URL } from "@/lib/brand"
 
 const PRODUCTION_URL = "https://dakota-marketing-hub.vercel.app"
 const FONT_IMPORT_URL = "https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700&family=Calistoga&display=swap"
@@ -122,6 +122,7 @@ export default function QRGeneratorPage() {
   const assetBaseUrl = typeof window === "undefined" ? PRODUCTION_URL : window.location.origin
   const hotelLogoUrl = `${assetBaseUrl}${BRAND_ASSETS.hotelLogo}`
   const airLoungeLogoUrl = `${assetBaseUrl}${BRAND_ASSETS.airLoungeLogo}`
+  const flugzeugBgUrl = `${assetBaseUrl}${BRAND_ASSETS.flugzeugBg}`
 
   useEffect(() => {
     if (tokens.length === 0) {
@@ -174,10 +175,11 @@ export default function QRGeneratorPage() {
       const qrDataUrl = await createBrandedQrDataUrl(reviewUrl, 600, hotelLogoUrl)
       await ensureBrandFonts()
 
-      const [qrImg, hotelLogoImg, airLoungeLogoImg] = await Promise.all([
+      const [qrImg, hotelLogoImg, airLoungeLogoImg, flugzeugBgImg] = await Promise.all([
         loadImage(qrDataUrl),
         loadImage(hotelLogoUrl),
         loadImage(airLoungeLogoUrl),
+        loadImage(flugzeugBgUrl),
       ])
 
       // Draw card on canvas
@@ -191,6 +193,11 @@ export default function QRGeneratorPage() {
       // Background
       ctx.fillStyle = "#FFFFFF"
       ctx.fillRect(0, 0, W, H)
+
+      // Flugzeug-Hintergrund (halbtransparent)
+      ctx.globalAlpha = 0.07
+      drawImageContain(ctx, flugzeugBgImg, 0, 0, W, H)
+      ctx.globalAlpha = 1.0
 
       // Brand header
       const brandBoxX = 84
@@ -238,10 +245,12 @@ export default function QRGeneratorPage() {
 
       // Bottom gold bar
       ctx.fillStyle = BRAND_COLORS.gold
-      ctx.fillRect(W / 2 - 72, H - 72, 144, 4)
+      ctx.fillRect(W / 2 - 72, H - 88, 144, 4)
       ctx.fillStyle = "#756A5C"
-      ctx.font = "300 18px Assistant, sans-serif"
-      ctx.fillText("Dakota Air Lounge · Meiringen", W / 2, H - 38)
+      ctx.font = "400 20px Assistant, sans-serif"
+      ctx.fillText("Restaurant Dakota-Airlounge", W / 2, H - 58)
+      ctx.font = "300 16px Assistant, sans-serif"
+      ctx.fillText("Amthausgasse 2 · 3860 Meiringen", W / 2, H - 34)
 
       // Download
       const a = document.createElement("a")
@@ -260,7 +269,8 @@ export default function QRGeneratorPage() {
     const cards = tokens.map((token) => {
       const qrUrl = qrDataUrls[token] || ""
       return `
-        <div style="width:297px;height:420px;border:1px solid #E7DED1;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;page-break-inside:avoid;font-family:'Assistant',sans-serif;font-weight:300;background:white;box-sizing:border-box;">
+        <div style="width:297px;height:420px;border:1px solid #E7DED1;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;page-break-inside:avoid;font-family:'Assistant',sans-serif;font-weight:300;background:white;box-sizing:border-box;position:relative;overflow:hidden;">
+          <div style="position:absolute;inset:0;background-image:url(${flugzeugBgUrl});background-size:cover;background-position:center;opacity:0.07;pointer-events:none;"></div>
           <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;background:#F8F6F3;border-radius:18px;padding:14px 12px 12px;">
             <div style="display:flex;align-items:center;justify-content:center;min-height:42px;">
               <img src="${hotelLogoUrl}" style="width:72px;max-height:42px;height:auto;object-fit:contain;" alt="Dakota Hotel" />
@@ -273,8 +283,9 @@ export default function QRGeneratorPage() {
           </div>
           <p style="margin:0;font-family:'Calistoga',serif;font-size:22px;color:#2C2C2C;text-align:center;">Bewerte dein Erlebnis!</p>
           <p style="margin:8px 0 0;font-size:12px;color:#5E5346;text-align:center;line-height:1.5;font-weight:400;">Scanne den QR-Code mit deinem<br/>Handy und sichere dir dein Dakota-Goody</p>
-          <div style="margin-top:14px;width:52px;height:3px;background:#C5A572;border-radius:999px;"></div>
-          <p style="margin:12px 0 0;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#7C6951;">Dakota Air Lounge · Meiringen</p>
+          <div style="position:relative;margin-top:14px;width:52px;height:3px;background:#C5A572;border-radius:999px;"></div>
+          <p style="position:relative;margin:8px 0 0;font-size:10px;font-weight:500;color:#7C6951;">Restaurant Dakota-Airlounge</p>
+          <p style="position:relative;margin:2px 0 0;font-size:8px;letter-spacing:0.1em;color:#7C6951;">Amthausgasse 2 · 3860 Meiringen</p>
         </div>
       `
     }).join("")
@@ -358,8 +369,12 @@ export default function QRGeneratorPage() {
               {/* Printable Card Preview */}
               <div
                 id={`card-${index}`}
-                className="flex flex-col items-center border-b bg-white p-5"
+                className="relative flex flex-col items-center border-b bg-white p-5 overflow-hidden"
               >
+                <div
+                  className="absolute inset-0 bg-center bg-cover pointer-events-none"
+                  style={{ backgroundImage: `url(${BRAND_ASSETS.flugzeugBg})`, opacity: 0.07 }}
+                />
                 <div className="w-full rounded-[1.25rem] bg-[#F8F6F3] px-4 py-4">
                   <div className="flex flex-col items-center gap-3">
                     <img
@@ -391,9 +406,12 @@ export default function QRGeneratorPage() {
                   Scanne den QR-Code mit deinem<br />Handy und sichere dir dein Dakota-Goody
                 </p>
 
-                <div className="mt-4 h-0.5 w-12 rounded bg-[#C5A572]" />
-                <p className="mt-3 text-[10px] uppercase tracking-[0.18em] text-[#7C6951]">
-                  Dakota Air Lounge · Meiringen
+                <div className="relative mt-4 h-0.5 w-12 rounded bg-[#C5A572]" />
+                <p className="relative mt-2 text-[11px] font-medium text-[#7C6951]">
+                  Restaurant Dakota-Airlounge
+                </p>
+                <p className="relative text-[9px] tracking-[0.1em] text-[#7C6951]">
+                  Amthausgasse 2 · 3860 Meiringen
                 </p>
               </div>
 
