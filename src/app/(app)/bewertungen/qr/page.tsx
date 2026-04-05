@@ -223,9 +223,8 @@ export default function QRGeneratorPage() {
       ctx.drawImage(flugzeugBgImg, (W - bgW) / 2, (H - bgH) / 2, bgW, bgH)
       ctx.globalAlpha = 1.0
 
-      // Logos auf Brand header
-      drawImageContain(ctx, hotelLogoImg, W / 2 - 84, 54, 168, 92)
-      drawImageContain(ctx, airLoungeLogoImg, brandBoxX + 82, 138, brandBoxW - 164, 108)
+      // Air Lounge Logo auf Brand header (Hotel-Logo entfällt — kommt vom Hintergrund)
+      drawImageContain(ctx, airLoungeLogoImg, brandBoxX + 82, 60, brandBoxW - 164, 160)
 
       ctx.fillStyle = BRAND_COLORS.gold
       ctx.fillRect(W / 2 - 84, 250, 168, 4)
@@ -274,13 +273,10 @@ export default function QRGeneratorPage() {
       const qrUrl = qrDataUrls[token] || ""
       return `
         <div style="width:297px;height:420px;border:1px solid #E7DED1;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;page-break-inside:avoid;font-family:'Assistant',sans-serif;font-weight:300;background:white;box-sizing:border-box;position:relative;overflow:hidden;">
-          <div style="position:absolute;inset:0;background-image:url(${flugzeugBgUrl});background-size:cover;background-position:center;opacity:0.07;pointer-events:none;"></div>
-          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;background:#F8F6F3;border-radius:18px;padding:14px 12px 12px;">
-            <div style="display:flex;align-items:center;justify-content:center;min-height:42px;">
-              <img src="${hotelLogoUrl}" style="width:72px;max-height:42px;height:auto;object-fit:contain;" alt="Dakota Hotel" />
-            </div>
-            <img src="${airLoungeLogoUrl}" style="width:142px;max-height:72px;height:auto;object-fit:contain;" alt="Air Lounge" />
-            <div style="width:52px;height:3px;background:#C5A572;border-radius:999px;"></div>
+          <div style="position:absolute;inset:0;background-image:url(${flugzeugBgUrl});background-size:cover;background-position:center;opacity:0.55;pointer-events:none;"></div>
+          <div style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;background:#F8F6F3;border-radius:18px;padding:16px 12px 14px;">
+            <img src="${airLoungeLogoUrl}" style="position:relative;width:152px;max-height:80px;height:auto;object-fit:contain;" alt="Air Lounge" />
+            <div style="position:relative;width:52px;height:3px;background:#C5A572;border-radius:999px;"></div>
           </div>
           <div style="margin:18px 0 14px;padding:12px;background:#F3EEE6;border-radius:18px;">
             <img src="${qrUrl}" style="width:180px;height:180px;" alt="QR" />
@@ -379,17 +375,12 @@ export default function QRGeneratorPage() {
                   className="absolute inset-0 bg-center bg-cover pointer-events-none"
                   style={{ backgroundImage: `url(${BRAND_ASSETS.flugzeugBg})`, opacity: 0.55 }}
                 />
-                <div className="w-full rounded-[1.25rem] bg-[#F8F6F3] px-4 py-4">
-                  <div className="flex flex-col items-center gap-3">
-                    <img
-                      src={BRAND_ASSETS.hotelLogo}
-                      alt="Dakota Hotel"
-                      className="max-h-12 w-[5rem] object-contain"
-                    />
+                <div className="relative w-full rounded-[1.25rem] bg-[#F8F6F3] px-4 py-5">
+                  <div className="relative flex flex-col items-center gap-3">
                     <img
                       src={BRAND_ASSETS.airLoungeLogo}
                       alt="Air Lounge"
-                      className="max-h-20 w-36 object-contain"
+                      className="max-h-24 w-40 object-contain"
                     />
                     <div className="h-0.5 w-12 rounded bg-[#C5A572]" />
                   </div>
