@@ -216,7 +216,7 @@ export default function QRGeneratorPage() {
       ctx.fill()
 
       // Flugzeug-Wasserzeichen ÜBER die Boxen (vor QR + Text)
-      ctx.globalAlpha = 0.15
+      ctx.globalAlpha = 0.55
       const bgScale = Math.max(W / flugzeugBgImg.naturalWidth, H / flugzeugBgImg.naturalHeight)
       const bgW = flugzeugBgImg.naturalWidth * bgScale
       const bgH = flugzeugBgImg.naturalHeight * bgScale
@@ -377,7 +377,7 @@ export default function QRGeneratorPage() {
               >
                 <div
                   className="absolute inset-0 bg-center bg-cover pointer-events-none"
-                  style={{ backgroundImage: `url(${BRAND_ASSETS.flugzeugBg})`, opacity: 0.18 }}
+                  style={{ backgroundImage: `url(${BRAND_ASSETS.flugzeugBg})`, opacity: 0.55 }}
                 />
                 <div className="w-full rounded-[1.25rem] bg-[#F8F6F3] px-4 py-4">
                   <div className="flex flex-col items-center gap-3">
