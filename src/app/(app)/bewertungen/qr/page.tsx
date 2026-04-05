@@ -194,9 +194,12 @@ export default function QRGeneratorPage() {
       ctx.fillStyle = "#FFFFFF"
       ctx.fillRect(0, 0, W, H)
 
-      // Flugzeug-Hintergrund (halbtransparent)
-      ctx.globalAlpha = 0.07
-      drawImageContain(ctx, flugzeugBgImg, 0, 0, W, H)
+      // Flugzeug-Hintergrund (halbtransparent, cover)
+      ctx.globalAlpha = 0.18
+      const bgScale = Math.max(W / flugzeugBgImg.naturalWidth, H / flugzeugBgImg.naturalHeight)
+      const bgW = flugzeugBgImg.naturalWidth * bgScale
+      const bgH = flugzeugBgImg.naturalHeight * bgScale
+      ctx.drawImage(flugzeugBgImg, (W - bgW) / 2, (H - bgH) / 2, bgW, bgH)
       ctx.globalAlpha = 1.0
 
       // Brand header
@@ -373,7 +376,7 @@ export default function QRGeneratorPage() {
               >
                 <div
                   className="absolute inset-0 bg-center bg-cover pointer-events-none"
-                  style={{ backgroundImage: `url(${BRAND_ASSETS.flugzeugBg})`, opacity: 0.07 }}
+                  style={{ backgroundImage: `url(${BRAND_ASSETS.flugzeugBg})`, opacity: 0.18 }}
                 />
                 <div className="w-full rounded-[1.25rem] bg-[#F8F6F3] px-4 py-4">
                   <div className="flex flex-col items-center gap-3">
