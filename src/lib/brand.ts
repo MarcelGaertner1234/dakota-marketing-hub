@@ -12,4 +12,4 @@ export const BRAND_ASSETS = {
   flugzeugBg: "/branding/flugzeug-bg.png",
 } as const
 
-export const GOOGLE_REVIEW_URL = "https://www.google.com/maps/place/Dakota+Air+Lounge,+Bahnhofstrasse+3,+3860+Meiringen/@46.7281695,8.1855736,17z"
+export const GOOGLE_REVIEW_URL = "https://www.google.com/search?q=Dakota+Air+Lounge+Meiringen"
