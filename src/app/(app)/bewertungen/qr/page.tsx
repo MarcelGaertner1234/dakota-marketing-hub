@@ -202,12 +202,12 @@ export default function QRGeneratorPage() {
       ctx.drawImage(flugzeugBgImg, (W - bgW) / 2, (H - bgH) / 2, bgW, bgH)
       ctx.globalAlpha = 1.0
 
-      // Brand header
+      // Brand header (halbtransparent damit Flugzeug durchscheint)
       const brandBoxX = 84
       const brandBoxY = 44
       const brandBoxW = W - 168
       const brandBoxH = 222
-      ctx.fillStyle = BRAND_COLORS.paper
+      ctx.fillStyle = "rgba(248, 246, 243, 0.8)"
       ctx.beginPath()
       ctx.roundRect(brandBoxX, brandBoxY, brandBoxW, brandBoxH, 34)
       ctx.fill()
@@ -218,13 +218,13 @@ export default function QRGeneratorPage() {
       ctx.fillStyle = BRAND_COLORS.gold
       ctx.fillRect(W / 2 - 84, 250, 168, 4)
 
-      // QR background box
+      // QR background box (halbtransparent)
       const qrSize = 430
       const qrBoxPad = 36
       const qrBoxW = qrSize + qrBoxPad * 2
       const qrBoxX = (W - qrBoxW) / 2
       const qrBoxY = 316
-      ctx.fillStyle = BRAND_COLORS.paperMuted
+      ctx.fillStyle = "rgba(243, 238, 230, 0.8)"
       ctx.beginPath()
       ctx.roundRect(qrBoxX, qrBoxY, qrBoxW, qrBoxW, 28)
       ctx.fill()
