@@ -12,4 +12,4 @@ export const BRAND_ASSETS = {
   flugzeugBg: "/branding/flugzeug-bg.png",
 } as const
 
-export const GOOGLE_REVIEW_URL = "https://www.google.com/search?q=Dakota+Air+Lounge+Meiringen"
+export const GOOGLE_REVIEW_URL = "https://search.google.com/local/writereview?placeid=ChIJpeH_AwCPj0cRXncGiCR6Ty0"

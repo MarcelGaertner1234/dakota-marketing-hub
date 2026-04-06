@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Star, Gift, Loader2 } from "lucide-react"
+import { Star, Gift, Loader2, Copy, Check } from "lucide-react"
 import { BRAND_ASSETS, GOOGLE_REVIEW_URL } from "@/lib/brand"
 
 function StarInput({
@@ -56,6 +56,7 @@ export default function BewertungPage() {
   const [goodyCode, setGoodyCode] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [copied, setCopied] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -125,15 +126,30 @@ export default function BewertungPage() {
             <p className="text-xs text-[#7C6951]">
               Zeig diesen Code beim nächsten Besuch vor!
             </p>
-            <div className="mt-4 pt-4 border-t border-[#E7DED1]">
-              <p className="text-xs text-[#7C6951] mb-3">
+            <div className="mt-4 pt-4 border-t border-[#E7DED1] space-y-3">
+              <p className="text-xs text-[#7C6951]">
                 Würdest du uns auch auf Google empfehlen?
               </p>
+              {comment && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(comment)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E7DED1] bg-[#F8F6F3] px-4 py-2 text-xs text-[#5E5346] transition-colors hover:bg-[#F3EEE6]"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Text kopiert!" : "Deinen Kommentar kopieren"}
+                </button>
+              )}
               <a
                 href={GOOGLE_REVIEW_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-[#E7DED1] bg-white px-4 py-2.5 text-sm font-medium text-[#2C2C2C] shadow-sm transition-colors hover:bg-gray-50"
+                onClick={() => { if (comment && !copied) { navigator.clipboard.writeText(comment); setCopied(true) } }}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E7DED1] bg-white px-4 py-2.5 text-sm font-medium text-[#2C2C2C] shadow-sm transition-colors hover:bg-gray-50"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -143,6 +159,11 @@ export default function BewertungPage() {
                 </svg>
                 Auf Google bewerten
               </a>
+              {comment && (
+                <p className="text-[10px] text-[#9A8D7A] text-center">
+                  Dein Text wird kopiert — einfach bei Google einfügen
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
