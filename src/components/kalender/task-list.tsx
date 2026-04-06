@@ -154,7 +154,7 @@ export function TaskList({
               className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <Checkbox
-                checked={false}
+                checked={task.status === "done"}
                 onCheckedChange={() => handleToggle(task.id, task.status)}
                 disabled={isPending}
               />

@@ -131,6 +131,7 @@ export function PostDetail({ post }: { post: PostData }) {
         fd.set("file", file)
         fd.set("bucket", "social-images")
         fd.set("folder", folder)
+        fd.set("parent_id", post.id)
         await fetch("/api/upload", { method: "POST", body: fd })
       }
       await loadImages()

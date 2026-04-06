@@ -16,12 +16,10 @@ export async function POST(request: NextRequest) {
 
   const goodyCode = `DAKOTA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 
-  // Every review gets its own unique token + goody code
-  // Append a unique suffix so the same QR can be used by multiple customers
-  const uniqueToken = `${token}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+  const goodyToken = `${token}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
 
   const { error } = await supabase.from("reviews").insert({
-    token: uniqueToken,
+    token: goodyToken,
     food_rating,
     ambience_rating,
     service_rating,
