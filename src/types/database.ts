@@ -6,6 +6,8 @@ export type LeadType = 'verein' | 'firma' | 'privatperson' | 'behoerde' | 'medie
 export type LeadStatus = 'neu' | 'kontaktiert' | 'interessiert' | 'gebucht' | 'nachfassen' | 'verloren'
 export type PlatformType = 'instagram' | 'facebook' | 'tiktok'
 export type PostStatus = 'draft' | 'planned' | 'ready' | 'published'
+export type StoryCategory = 'dish' | 'drink' | 'house' | 'crew' | 'location'
+export type StoryStatus = 'draft' | 'published'
 
 export interface TeamMember {
   id: string
@@ -201,6 +203,28 @@ export interface Review {
   created_at: string
 }
 
+export interface Story {
+  id: string
+  title: string
+  subtitle: string | null
+  category: StoryCategory
+  paragraph_1: string
+  paragraph_2: string | null
+  paragraph_3: string | null
+  illustration_url: string | null
+  footer_signature: string
+  linked_event_id: string | null
+  linked_concept_id: string | null
+  status: StoryStatus
+  sort_order: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  // Joined
+  linked_event?: Pick<Event, 'id' | 'title' | 'start_date'> | null
+  linked_concept?: Pick<Concept, 'id' | 'name' | 'slug'> | null
+}
+
 export interface Holiday {
   id: string
   name: string
@@ -227,6 +251,7 @@ export interface Database {
       social_post_images: { Row: SocialPostImage; Insert: Partial<SocialPostImage> & { post_id: string; storage_path: string; file_name: string }; Update: Partial<SocialPostImage> }
       reviews: { Row: Review; Insert: Partial<Review> & { token: string }; Update: Partial<Review> }
       holidays: { Row: Holiday; Insert: Partial<Holiday> & { name: string; date: string; year: number }; Update: Partial<Holiday> }
+      stories: { Row: Story; Insert: Partial<Story> & { title: string; paragraph_1: string }; Update: Partial<Story> }
     }
   }
 }

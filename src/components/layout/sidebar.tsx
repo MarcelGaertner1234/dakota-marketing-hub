@@ -15,6 +15,7 @@ import {
   X,
   Sun,
   Moon,
+  BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: "/kalender", label: "Kalender", icon: Calendar },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/konzepte", label: "Konzepte", icon: Lightbulb },
+  { href: "/stories", label: "Stories", icon: BookOpen },
   { href: "/social", label: "Social Media", icon: Share2 },
   { href: "/bewertungen", label: "Bewertungen", icon: Star },
   { href: "/einstellungen", label: "Einstellungen", icon: Settings },
