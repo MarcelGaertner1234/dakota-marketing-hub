@@ -18,7 +18,7 @@
  * When the local OIDC token expires (~24h), re-run `vercel env pull .env.local`.
  */
 
-import { generateText } from "ai"
+import { experimental_generateImage as generateImage } from "ai"
 import type { StoryCategory } from "@/types/database"
 
 // ──────────────────────────────────────────────────────────────
@@ -127,25 +127,20 @@ export async function generateStoryIllustration(
   const hasPhoto = !!input.sourcePhoto && input.sourcePhoto.length > 0
   const mode: "edit" | "text" = hasPhoto ? "edit" : "text"
 
-  // Build the messages — multimodal with optional image input
-  const result = await generateText({
+  // GPT Image 1.5 is an image-only model — use experimental_generateImage,
+  // not generateText. For image-edit mode, pass a prompt object with
+  // { text, images }. For text-only mode, pass a plain string prompt.
+  const result = await generateImage({
     model: IMAGE_MODEL,
-    messages: [
-      {
-        role: "user",
-        content: hasPhoto
-          ? [
-              { type: "text", text: fullPrompt },
-              {
-                type: "image",
-                image: input.sourcePhoto!,
-                mediaType: input.sourcePhotoMediaType ?? "image/jpeg",
-              },
-            ]
-          : [{ type: "text", text: fullPrompt }],
-      },
-    ],
+    prompt: hasPhoto
+      ? {
+          text: fullPrompt,
+          images: [input.sourcePhoto!],
+        }
+      : fullPrompt,
+    size: "1024x1024",
     providerOptions: {
+      openai: { quality: "high" },
       gateway: {
         tags: [
           "feature:story-illustration",
@@ -157,21 +152,21 @@ export async function generateStoryIllustration(
     },
   })
 
-  // Extract the generated image from result.files
-  const imageFile = result.files.find((f) =>
-    f.mediaType?.startsWith("image/")
-  )
+  // experimental_generateImage returns { image } (singular) for single generations.
+  // Handle both shapes defensively in case SDK behavior varies.
+  const generated =
+    (result as unknown as { image?: { uint8Array: Uint8Array; mediaType?: string } }).image ??
+    (result as unknown as { images?: Array<{ uint8Array: Uint8Array; mediaType?: string }> }).images?.[0]
 
-  if (!imageFile) {
+  if (!generated) {
     throw new Error(
-      "AI Gateway returned no image file. Model response: " +
-        (result.text?.slice(0, 300) ?? "(no text)")
+      "AI Gateway returned no image. Check model slug and API key."
     )
   }
 
   return {
-    imageData: imageFile.uint8Array,
-    mediaType: imageFile.mediaType ?? "image/png",
+    imageData: generated.uint8Array,
+    mediaType: generated.mediaType ?? "image/png",
     mode,
   }
 }
