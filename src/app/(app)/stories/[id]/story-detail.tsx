@@ -22,6 +22,7 @@ import {
   ExternalLink,
   CheckCircle2,
   EyeOff,
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -33,6 +34,7 @@ import {
 } from "@/lib/actions/stories"
 import { useRouter } from "next/navigation"
 import type { Story, StoryCategory } from "@/types/database"
+import { IllustrationGeneratorModal } from "@/components/stories/illustration-generator-modal"
 
 const CATEGORY_LABELS: Record<StoryCategory, string> = {
   dish: "Gericht",
@@ -55,6 +57,7 @@ export function StoryDetail({ story }: { story: Story }) {
   const [isPending, startTransition] = useTransition()
   const [isUploading, setIsUploading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -201,15 +204,26 @@ export function StoryDetail({ story }: { story: Story }) {
                   Illustration
                 </div>
               </CardTitle>
-              {story.illustration_url && (
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleRemoveIllustration}
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="border-[#C5A572] text-[#C5A572] hover:bg-[#C5A572]/10"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  KI generieren
                 </Button>
-              )}
+                {story.illustration_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveIllustration}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {story.illustration_url ? (
@@ -494,6 +508,15 @@ export function StoryDetail({ story }: { story: Story }) {
           </Card>
         </div>
       </div>
+
+      {/* KI Illustration Generator Modal */}
+      <IllustrationGeneratorModal
+        storyId={story.id}
+        storyTitle={story.title}
+        open={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onSuccess={() => router.refresh()}
+      />
     </div>
   )
 }
