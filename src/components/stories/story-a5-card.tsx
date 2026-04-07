@@ -78,24 +78,24 @@ export function StoryA5Card({
           zIndex: 1,
           width: "100%",
           height: "100%",
-          padding: "12mm 14mm 11mm",
+          padding: "10mm 12mm 9mm",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* HEADER — air-lounge-logo im weissen Container */}
+        {/* HEADER — air-lounge-logo im weissen Container (kompakt) */}
         <header
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            marginBottom: "6mm",
+            marginBottom: "4mm",
           }}
         >
           <div
             style={{
               background: "#FFFFFF",
-              padding: "5mm 9mm 4mm",
+              padding: "3mm 7mm 2.5mm",
               borderRadius: "3mm",
               border: "0.5pt solid #E7DED1",
               boxShadow: "0 2pt 6pt rgba(0, 0, 0, 0.04)",
@@ -108,7 +108,7 @@ export function StoryA5Card({
               src="/branding/air-lounge-logo.png"
               alt="Dakota Air Lounge"
               style={{
-                width: "46mm",
+                width: "34mm",
                 height: "auto",
                 display: "block",
                 objectFit: "contain",
@@ -119,20 +119,20 @@ export function StoryA5Card({
           {/* Gold-Divider unter dem Logo */}
           <div
             style={{
-              width: "18mm",
-              height: "0.8mm",
+              width: "16mm",
+              height: "0.7mm",
               background: "#C5A572",
-              marginTop: "4mm",
+              marginTop: "3mm",
               borderRadius: "0.5mm",
             }}
           />
         </header>
 
-        {/* ILLUSTRATION */}
+        {/* ILLUSTRATION — gross, full-bleed Landscape (1.5:1 match) */}
         <div
           style={{
-            width: "95mm",
-            height: "63mm",
+            width: "112mm",
+            height: "75mm",
             margin: "0 auto 4mm",
             display: "flex",
             alignItems: "center",

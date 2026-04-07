@@ -34,8 +34,8 @@ TECHNIQUE:
 - Some areas intentionally left uncolored so ink lines breathe
 - Pure white background (no scenery, no texture, no patterns)
 - Subject in slight 3/4 perspective from above
-- Subject fills most of the frame (80-90% of the image area), close to the edges, with only minimal margins — NOT a tiny subject floating in a large empty space
-- Composition should be tight and intimate, like a close-up editorial plate photograph reimagined as a drawing
+- TIGHT CROP: the subject MUST fill the entire frame from edge to edge. The subject touches or nearly touches the top, bottom, left, and right edges of the image. NO whitespace margins around the subject. The subject IS the entire image — not a tiny element floating in empty space.
+- Compose like a magazine cover photograph cropped tight, with the subject zoomed in to fill 95% of the frame
 - Editorial minimalism — shadows suggested, not heavy
 - Elegant and intimate, hand-painted recipe card feel
 - Never photographic, never cartoonish
