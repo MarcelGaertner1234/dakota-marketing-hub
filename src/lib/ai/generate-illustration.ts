@@ -34,7 +34,8 @@ TECHNIQUE:
 - Some areas intentionally left uncolored so ink lines breathe
 - Pure white background (no scenery, no texture, no patterns)
 - Subject in slight 3/4 perspective from above
-- Subject centered, with generous white space around it
+- Subject fills most of the frame (80-90% of the image area), close to the edges, with only minimal margins — NOT a tiny subject floating in a large empty space
+- Composition should be tight and intimate, like a close-up editorial plate photograph reimagined as a drawing
 - Editorial minimalism — shadows suggested, not heavy
 - Elegant and intimate, hand-painted recipe card feel
 - Never photographic, never cartoonish
@@ -139,7 +140,7 @@ export async function generateStoryIllustration(
           images: [input.sourcePhoto!],
         }
       : fullPrompt,
-    size: "1024x1024",
+    size: "1536x1024",
     providerOptions: {
       openai: { quality: "high" },
       gateway: {

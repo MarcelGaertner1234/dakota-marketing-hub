@@ -132,8 +132,8 @@ export function StoryA5Card({
         <div
           style={{
             width: "95mm",
-            height: "54mm",
-            margin: "0 auto 5mm",
+            height: "63mm",
+            margin: "0 auto 4mm",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
