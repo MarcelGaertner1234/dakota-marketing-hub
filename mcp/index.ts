@@ -8,6 +8,7 @@ import { registerSocialTools } from "./tools/social.js"
 import { registerReviewTools } from "./tools/reviews.js"
 import { registerTeamTools } from "./tools/team.js"
 import { registerWorkflowTools } from "./tools/workflows.js"
+import { registerStoryTools } from "./tools/stories.js"
 
 const server = new McpServer({
   name: "dakota-mcp",
@@ -23,6 +24,7 @@ registerSocialTools(server)
 registerReviewTools(server)
 registerTeamTools(server)
 registerWorkflowTools(server)
+registerStoryTools(server)
 
 // Start server
 const transport = new StdioServerTransport()
