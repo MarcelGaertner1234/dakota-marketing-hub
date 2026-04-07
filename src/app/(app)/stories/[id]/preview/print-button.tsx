@@ -57,10 +57,13 @@ export function PrintButton({ storyTitle }: PrintButtonProps) {
         )
       )
 
-      // 4. Dynamic import — load html2canvas and jsPDF only on first click.
+      // 4. Dynamic import — load html2canvas-pro and jsPDF only on first click.
       //    This keeps the initial bundle small.
+      //    html2canvas-pro (vs. legacy html2canvas) supports modern CSS color
+      //    functions like lab(), oklch(), color-mix() — required since Tailwind
+      //    v4 / shadcn tokens emit oklch by default.
       const [html2canvasMod, jspdfMod] = await Promise.all([
-        import("html2canvas"),
+        import("html2canvas-pro"),
         import("jspdf"),
       ])
       const html2canvas = html2canvasMod.default
