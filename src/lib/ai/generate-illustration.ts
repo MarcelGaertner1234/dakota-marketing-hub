@@ -89,6 +89,10 @@ export interface GenerateIllustrationInput {
   sourcePhotoMediaType?: string | null
   /** Optional story id for tracking/tagging (cost attribution per story) */
   storyId?: string
+  /** Optional output size — defaults to "1536x1024" landscape (used by Stories + Tischkarten).
+   *  Social posts override this per platform: instagram → 1024x1024, facebook → 1536x1024,
+   *  tiktok → 1024x1536. */
+  size?: "1024x1024" | "1536x1024" | "1024x1536"
 }
 
 export interface GenerateIllustrationResult {
@@ -140,7 +144,7 @@ export async function generateStoryIllustration(
           images: [input.sourcePhoto!],
         }
       : fullPrompt,
-    size: "1536x1024",
+    size: input.size ?? "1536x1024",
     providerOptions: {
       openai: { quality: "high" },
       gateway: {

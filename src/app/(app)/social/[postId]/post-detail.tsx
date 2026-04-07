@@ -27,11 +27,14 @@ import {
   Plus,
   Clock,
   FileText,
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 import { updateSocialPost, deleteSocialPost } from "@/lib/actions/social"
 import { useRouter } from "next/navigation"
 import { PostStatusSelect } from "./post-status-select"
+import { SocialIllustrationModal } from "@/components/social/social-illustration-modal"
+import { SocialCaptionModal } from "@/components/social/social-caption-modal"
 
 interface PostData {
   id: string
@@ -70,6 +73,8 @@ export function PostDetail({ post }: { post: PostData }) {
   const [images, setImages] = useState<StorageFile[]>([])
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [deletingPath, setDeletingPath] = useState<string | null>(null)
+  const [isAiImageModalOpen, setIsAiImageModalOpen] = useState(false)
+  const [isAiCaptionModalOpen, setIsAiCaptionModalOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const platform = PLATFORM_CONFIG[post.platform] || PLATFORM_CONFIG.instagram
@@ -237,10 +242,21 @@ export function PostDetail({ post }: { post: PostData }) {
               Bilder & Medien ({images.length})
             </div>
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-            {isUploading ? "Hochladen..." : "Bild hinzufügen"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAiImageModalOpen(true)}
+              className="border-[#C5A572] text-[#C5A572] hover:bg-[#C5A572]/10"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              KI generieren
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+              {isUploading ? "Hochladen..." : "Bild hinzufügen"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {images.length > 0 ? (
@@ -368,12 +384,25 @@ export function PostDetail({ post }: { post: PostData }) {
 
           {/* Caption */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> Caption & Anweisungen</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-4 w-4" /> Caption & Anweisungen
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAiCaptionModalOpen(true)}
+                className="border-[#C5A572] text-[#C5A572] hover:bg-[#C5A572]/10"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                KI Caption
+              </Button>
+            </CardHeader>
             <CardContent>
               {captionText ? (
                 <p className="text-sm whitespace-pre-wrap">{captionText}</p>
               ) : (
-                <p className="text-sm text-gray-400 dark:text-gray-500 italic">Noch keine Caption. Klick auf &quot;Bearbeiten&quot; um Text und Anweisungen hinzuzufügen.</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">Noch keine Caption. Klick auf &quot;Bearbeiten&quot; um Text und Anweisungen hinzuzufügen — oder lass sie von der KI generieren.</p>
               )}
             </CardContent>
           </Card>
@@ -466,6 +495,29 @@ export function PostDetail({ post }: { post: PostData }) {
           <img src={lightboxUrl} alt="Vergrössert" className="max-h-[95vh] max-w-[95vw] object-contain" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
+
+      {/* KI-Illustration Modal */}
+      <SocialIllustrationModal
+        postId={post.id}
+        postTitle={post.title || "Dakota Post"}
+        platform={post.platform}
+        open={isAiImageModalOpen}
+        onClose={() => setIsAiImageModalOpen(false)}
+        onSuccess={() => {
+          loadImages()
+          router.refresh()
+        }}
+      />
+
+      {/* KI-Caption Modal */}
+      <SocialCaptionModal
+        postId={post.id}
+        postTitle={post.title || "Dakota Post"}
+        platform={post.platform}
+        open={isAiCaptionModalOpen}
+        onClose={() => setIsAiCaptionModalOpen(false)}
+        onSuccess={() => router.refresh()}
+      />
     </div>
   )
 }
