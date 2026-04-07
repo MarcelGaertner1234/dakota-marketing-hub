@@ -225,6 +225,36 @@ export interface Story {
   linked_concept?: Pick<Concept, 'id' | 'name' | 'slug'> | null
 }
 
+export type TischkartenOccasion =
+  | 'birthday'
+  | 'anniversary'
+  | 'business'
+  | 'family'
+  | 'wedding'
+  | 'none'
+
+export interface Tischkarte {
+  id: string
+  // Eingaben
+  guest_name: string
+  occasion: TischkartenOccasion | null
+  party_size: number | null
+  reservation_date: string | null
+  table_number: string | null
+  custom_hint: string | null
+  // KI-generierter Inhalt
+  title: string
+  subtitle: string | null
+  paragraph_1: string
+  paragraph_2: string | null
+  paragraph_3: string | null
+  // Visuals
+  illustration_url: string | null
+  footer_signature: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Holiday {
   id: string
   name: string
@@ -252,6 +282,7 @@ export interface Database {
       reviews: { Row: Review; Insert: Partial<Review> & { token: string }; Update: Partial<Review> }
       holidays: { Row: Holiday; Insert: Partial<Holiday> & { name: string; date: string; year: number }; Update: Partial<Holiday> }
       stories: { Row: Story; Insert: Partial<Story> & { title: string; paragraph_1: string }; Update: Partial<Story> }
+      tischkarten: { Row: Tischkarte; Insert: Partial<Tischkarte> & { guest_name: string; title: string; paragraph_1: string }; Update: Partial<Tischkarte> }
     }
   }
 }
