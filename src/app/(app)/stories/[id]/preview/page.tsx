@@ -104,20 +104,18 @@ export default async function StoryPreviewPage({
               gap: "8px",
             }}
           >
-            <PrintButton />
+            <PrintButton storyTitle={story.title} />
             <div
               style={{
                 fontFamily: "var(--font-assistant), system-ui, sans-serif",
                 fontSize: "12px",
                 color: "#7C6951",
                 textAlign: "center",
-                maxWidth: "280px",
+                maxWidth: "320px",
               }}
             >
-              Im Druck-Dialog: <strong>Format A5</strong>, Ränder{" "}
-              <strong>Keine</strong>, Häkchen bei{" "}
-              <strong>Hintergrundgrafiken</strong>, dann{" "}
-              <strong>Als PDF speichern</strong>.
+              Echtes A5-PDF wird direkt heruntergeladen — kein Druck-Dialog.
+              Dauer ca. 5-15 Sekunden.
             </div>
           </div>
 
