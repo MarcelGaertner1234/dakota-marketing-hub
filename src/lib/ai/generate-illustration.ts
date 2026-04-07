@@ -26,25 +26,26 @@ import type { StoryCategory } from "@/types/database"
 // (Hatecke madürà, Vogelnest — fine ink + partial watercolor wash)
 // ──────────────────────────────────────────────────────────────
 
-const BASE_STYLE = `Render this as a hand-drawn illustration in the exact style of Chesa Rosatsch culinary menu artwork — a vintage Swiss alpine fine-dining aesthetic.
+const BASE_STYLE = `Render this as a delicate hand-drawn editorial illustration in a vintage Swiss alpine mountain-inn culinary menu aesthetic.
 
 TECHNIQUE:
-- Fine, slightly tremoring ink line-art drawn with a dip pen
+- Fine dip-pen ink line-art with slightly tremoring organic strokes
 - Gentle partial watercolor washes in natural muted tones: warm ochres, soft sage greens, terracotta, cream, light grays, muted blues
 - Some areas intentionally left uncolored so ink lines breathe
 - Pure white background (no scenery, no texture, no patterns)
 - Subject in slight 3/4 perspective from above
 - Subject centered, with generous white space around it
 - Editorial minimalism — shadows suggested, not heavy
-- Elegant and intimate, suitable for a Michelin-starred mountain inn menu
-- Hand-painted recipe card feel — never photographic, never cartoonish
+- Elegant and intimate, hand-painted recipe card feel
+- Never photographic, never cartoonish
 
 COMPOSITION:
 - Single subject isolated on pure white
 - No text, no captions, no frames, no borders, no decorative elements
 - No props or additional scenery beyond the main subject
+- No brand names, no product packaging, no labels
 
-Do not add text, logos, watermarks, people, or backgrounds. Preserve the subject's identity while rendering it entirely in this hand-drawn aesthetic.`
+Preserve the subject's essential identity while rendering it entirely in this hand-drawn aesthetic. Focus on the form, ingredients, and materials — not any branding or packaging from the reference.`
 
 const CATEGORY_HINTS: Record<StoryCategory, string> = {
   dish: "Render the plated dish showing its ingredients and textures. Partial watercolor coloring on the food — the plate itself mostly line-art with minimal wash.",
