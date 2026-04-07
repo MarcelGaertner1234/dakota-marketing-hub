@@ -1,17 +1,8 @@
 import { getStory } from "@/lib/actions/stories"
 import { notFound } from "next/navigation"
-import { Cormorant_Garamond } from "next/font/google"
 import { StoryA5Card } from "@/components/stories/story-a5-card"
 import Link from "next/link"
 import type { Story } from "@/types/database"
-
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-})
 
 export const dynamic = "force-dynamic"
 
@@ -26,7 +17,6 @@ export default async function PublicStoryPage({
 
   return (
     <div
-      className={cormorant.variable}
       style={{
         minHeight: "100vh",
         background: "#e8e5df",
@@ -35,17 +25,17 @@ export default async function PublicStoryPage({
         flexDirection: "column",
         alignItems: "center",
         gap: "24px",
+        fontFamily: "var(--font-assistant), system-ui, sans-serif",
       }}
     >
       <StoryA5Card story={story} />
 
-      {/* CTA zur Bewertung (nur wenn via QR gescannt) */}
+      {/* CTA */}
       <div
         style={{
           maxWidth: "148mm",
           width: "100%",
           textAlign: "center",
-          fontFamily: "system-ui, -apple-system, sans-serif",
         }}
       >
         <p
@@ -69,6 +59,7 @@ export default async function PublicStoryPage({
               fontWeight: 500,
               cursor: "pointer",
               fontFamily: "inherit",
+              letterSpacing: "0.02em",
             }}
           >
             Mehr über das Dakota erfahren

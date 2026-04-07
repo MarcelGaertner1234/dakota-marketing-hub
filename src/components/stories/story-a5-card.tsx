@@ -3,11 +3,18 @@
 import type { Story } from "@/types/database"
 
 /**
- * StoryA5Card — Rendert eine Story im A5-Chesa-Rosatsch-Stil.
- * Wird identisch in Preview (Print), Public Page und Detail-Vorschau genutzt.
+ * StoryA5Card — A5-Format Story-Blatt im Dakota Air Lounge Corporate Design.
  *
- * WICHTIG: Diese Komponente erwartet, dass die Eltern-Seite die Font-Variable
- * --font-cormorant über next/font/google gesetzt hat.
+ * Design-Elemente übernommen aus QR-Tischkarte (BewertungenKarte):
+ *   - Echtes air-lounge-logo.png im weissen Container
+ *   - Flugzeug-Wasserzeichen (flugzeug-bg.png) als Background-Layer
+ *   - Gold-Akzente (#C5A572) als Divider
+ *   - Calistoga für Titel, Assistant für Body (via Root-Layout CSS-Variablen)
+ *   - Adress-Footer wie auf der QR-Karte
+ *
+ * Wird verwendet in:
+ *   - /stories/[id]/preview  (print-optimierte Ansicht)
+ *   - /story/[id]            (public QR-Landing)
  */
 export function StoryA5Card({
   story,
@@ -23,200 +30,269 @@ export function StoryA5Card({
     | "illustration_url"
     | "footer_signature"
   >
-  /** Optional: skaliert das A5-Blatt (1 = volle Größe, 0.5 = halb) */
+  /** Skaliert das A5-Blatt für Thumbnails (1 = volle A5-Grösse) */
   scale?: number
 }) {
+  const crewLabel = story.footer_signature.replace(/^Ihre\s+/i, "")
+
   return (
     <article
       className="story-a5-blatt"
       style={{
         width: "148mm",
         height: "210mm",
-        background: "#fdfcf9",
-        padding: "14mm 16mm 12mm",
-        display: "flex",
-        flexDirection: "column",
-        color: "#1a1a1a",
-        fontFamily: "var(--font-cormorant), 'EB Garamond', Georgia, serif",
-        transform: scale !== 1 ? `scale(${scale})` : undefined,
-        transformOrigin: "top left",
+        position: "relative",
+        overflow: "hidden",
+        background: "#F8F6F3",
+        color: "#2C2C2C",
+        fontFamily:
+          "var(--font-assistant), system-ui, -apple-system, sans-serif",
         boxShadow:
           "0 30px 80px rgba(0, 0, 0, 0.18), 0 10px 30px rgba(0, 0, 0, 0.08)",
+        transform: scale !== 1 ? `scale(${scale})` : undefined,
+        transformOrigin: "top left",
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
       }}
     >
-      {/* HEADER */}
-      <header style={{ textAlign: "center", paddingBottom: "4mm" }}>
-        <div
-          style={{
-            fontSize: "30pt",
-            fontWeight: 400,
-            letterSpacing: "0.08em",
-            lineHeight: 1,
-          }}
-        >
-          DAKOTA
-        </div>
-        <div
-          style={{
-            fontSize: "7pt",
-            letterSpacing: "0.38em",
-            marginTop: "2.5mm",
-            color: "#4a4a4a",
-            textTransform: "uppercase",
-          }}
-        >
-          Air Lounge · Meiringen
-        </div>
-      </header>
-
-      <hr
+      {/* Flugzeug-Wasserzeichen — absoluter Background-Layer */}
+      <div
+        aria-hidden
         style={{
-          border: "none",
-          borderTop: "0.5pt solid #1a1a1a",
-          margin: "4mm 0",
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "url('/branding/flugzeug-bg.png')",
+          backgroundSize: "180%",
+          backgroundPosition: "55% 85%",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.22,
+          pointerEvents: "none",
+          zIndex: 0,
         }}
       />
 
-      {/* CREST */}
+      {/* Content-Layer über dem Wasserzeichen */}
       <div
         style={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          height: "100%",
+          padding: "12mm 14mm 11mm",
           display: "flex",
-          justifyContent: "center",
-          marginBottom: "4mm",
+          flexDirection: "column",
         }}
       >
-        <svg
-          viewBox="0 0 120 60"
-          style={{ width: "16mm", height: "auto", opacity: 0.88 }}
-          xmlns="http://www.w3.org/2000/svg"
-          aria-label="Dakota Signet"
+        {/* HEADER — air-lounge-logo im weissen Container */}
+        <header
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            marginBottom: "6mm",
+          }}
         >
-          <g
-            fill="none"
-            stroke="#1a1a1a"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M8 34 Q 28 16, 50 30 Q 60 24, 70 30 Q 92 16, 112 34" />
-            <path d="M18 40 Q 34 28, 50 36 Q 60 32, 70 36 Q 86 28, 102 40" />
-            <circle cx="60" cy="30" r="2.2" fill="#1a1a1a" stroke="none" />
-            <line x1="60" y1="34" x2="60" y2="46" />
-          </g>
-        </svg>
-      </div>
-
-      {/* ILLUSTRATION */}
-      <div
-        style={{
-          width: "95mm",
-          height: "62mm",
-          margin: "0 auto 5mm",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: story.illustration_url
-            ? "none"
-            : "0.5pt dashed #b5b0a4",
-          background: "#fbfaf6",
-          overflow: "hidden",
-        }}
-      >
-        {story.illustration_url ? (
-          <img
-            src={story.illustration_url}
-            alt=""
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-              objectFit: "contain",
-            }}
-          />
-        ) : (
           <div
             style={{
-              textAlign: "center",
-              color: "#8a8474",
-              fontStyle: "italic",
-              fontSize: "9pt",
-              letterSpacing: "0.05em",
-              padding: "0 10mm",
-              lineHeight: 1.5,
+              background: "#FFFFFF",
+              padding: "5mm 9mm 4mm",
+              borderRadius: "3mm",
+              border: "0.5pt solid #E7DED1",
+              boxShadow: "0 2pt 6pt rgba(0, 0, 0, 0.04)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            [ Handgezeichnete Illustration<br />hier einfügen ]
+            <img
+              src="/branding/air-lounge-logo.png"
+              alt="Dakota Air Lounge"
+              style={{
+                width: "46mm",
+                height: "auto",
+                display: "block",
+                objectFit: "contain",
+              }}
+            />
           </div>
-        )}
-      </div>
 
-      {/* TITEL */}
-      <h1
-        style={{
-          textAlign: "center",
-          fontSize: "15pt",
-          fontWeight: 500,
-          lineHeight: 1.28,
-          margin: 0,
-          marginBottom: "4mm",
-          padding: "0 3mm",
-          fontStyle: "italic",
-        }}
-      >
-        {story.title}
-        {story.subtitle ? ` — ${story.subtitle}` : ""}
-      </h1>
+          {/* Gold-Divider unter dem Logo */}
+          <div
+            style={{
+              width: "18mm",
+              height: "0.8mm",
+              background: "#C5A572",
+              marginTop: "4mm",
+              borderRadius: "0.5mm",
+            }}
+          />
+        </header>
 
-      {/* BODY */}
-      <div
-        style={{
-          flex: 1,
-          fontSize: "10pt",
-          lineHeight: 1.55,
-          textAlign: "center",
-          padding: "0 2mm",
-          color: "#222",
-        }}
-      >
-        <p style={{ margin: 0, marginBottom: "3mm" }}>{story.paragraph_1}</p>
-        {story.paragraph_2 && (
-          <p style={{ margin: 0, marginBottom: "3mm" }}>
-            {story.paragraph_2}
+        {/* ILLUSTRATION */}
+        <div
+          style={{
+            width: "95mm",
+            height: "54mm",
+            margin: "0 auto 5mm",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: story.illustration_url
+              ? "none"
+              : "0.5pt dashed #C5A572",
+            background: story.illustration_url
+              ? "rgba(255, 255, 255, 0.4)"
+              : "rgba(255, 255, 255, 0.55)",
+            borderRadius: "2mm",
+            overflow: "hidden",
+          }}
+        >
+          {story.illustration_url ? (
+            <img
+              src={story.illustration_url}
+              alt=""
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                textAlign: "center",
+                color: "#9A8D7A",
+                fontStyle: "italic",
+                fontSize: "8.5pt",
+                letterSpacing: "0.04em",
+                padding: "0 10mm",
+                lineHeight: 1.5,
+              }}
+            >
+              [ Handgezeichnete Illustration<br />hier einfügen ]
+            </div>
+          )}
+        </div>
+
+        {/* TITEL — Calistoga (display-serif) */}
+        <h1
+          style={{
+            textAlign: "center",
+            fontSize: "17pt",
+            fontWeight: 400,
+            lineHeight: 1.2,
+            fontFamily: "var(--font-calistoga), Georgia, serif",
+            color: "#2C2C2C",
+            margin: 0,
+            marginBottom: "2mm",
+            padding: "0 2mm",
+          }}
+        >
+          {story.title}
+        </h1>
+
+        {/* UNTERTITEL — Assistant italic, gedämpft */}
+        {story.subtitle && (
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: "9.5pt",
+              fontStyle: "italic",
+              color: "#7C6951",
+              margin: 0,
+              marginBottom: "4mm",
+              padding: "0 6mm",
+              lineHeight: 1.3,
+              fontWeight: 400,
+            }}
+          >
+            {story.subtitle}
           </p>
         )}
-        {story.paragraph_3 && (
-          <p style={{ margin: 0 }}>{story.paragraph_3}</p>
-        )}
-      </div>
 
-      {/* FOOTER */}
-      <footer
-        style={{
-          textAlign: "center",
-          paddingTop: "3mm",
-          marginTop: "3mm",
-          borderTop: "0.5pt solid #1a1a1a",
-        }}
-      >
+        {/* BODY — Assistant, 3 Absätze */}
         <div
           style={{
-            fontSize: "9pt",
-            fontStyle: "italic",
-            color: "#333",
-            marginBottom: "0.5mm",
+            flex: 1,
+            fontSize: "10pt",
+            lineHeight: 1.58,
+            textAlign: "center",
+            color: "#3A3530",
+            padding: "0 2mm",
+            fontWeight: 300,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: "3mm",
           }}
         >
-          Ihre
+          <p style={{ margin: 0 }}>{story.paragraph_1}</p>
+          {story.paragraph_2 && (
+            <p style={{ margin: 0 }}>{story.paragraph_2}</p>
+          )}
+          {story.paragraph_3 && (
+            <p
+              style={{
+                margin: 0,
+                fontStyle: "italic",
+                color: "#2C2C2C",
+              }}
+            >
+              {story.paragraph_3}
+            </p>
+          )}
         </div>
+
+        {/* GOLD-DIVIDER vor dem Footer */}
         <div
           style={{
-            fontSize: "9pt",
-            letterSpacing: "0.3em",
-            textTransform: "uppercase",
+            width: "28mm",
+            height: "0.8mm",
+            background: "#C5A572",
+            margin: "5mm auto 3mm",
+            borderRadius: "0.5mm",
           }}
-        >
-          {story.footer_signature.replace(/^Ihre\s+/i, "")}
-        </div>
-      </footer>
+        />
+
+        {/* FOOTER — Crew + Adresse */}
+        <footer style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: "9pt",
+              fontStyle: "italic",
+              color: "#7C6951",
+              marginBottom: "0.5mm",
+              fontFamily: "var(--font-calistoga), Georgia, serif",
+            }}
+          >
+            Ihre
+          </div>
+          <div
+            style={{
+              fontSize: "11pt",
+              letterSpacing: "0.28em",
+              textTransform: "uppercase",
+              color: "#2C2C2C",
+              fontWeight: 500,
+              marginBottom: "3mm",
+              fontFamily: "var(--font-calistoga), Georgia, serif",
+            }}
+          >
+            {crewLabel}
+          </div>
+          <div
+            style={{
+              fontSize: "7pt",
+              color: "#7C6951",
+              letterSpacing: "0.06em",
+              fontWeight: 400,
+            }}
+          >
+            Restaurant Dakota-Airlounge &middot; Amthausgasse 2 &middot; 3860
+            Meiringen
+          </div>
+        </footer>
+      </div>
     </article>
   )
 }

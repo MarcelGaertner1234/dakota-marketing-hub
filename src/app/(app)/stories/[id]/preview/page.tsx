@@ -1,16 +1,7 @@
 import { getStory } from "@/lib/actions/stories"
 import { notFound } from "next/navigation"
-import { Cormorant_Garamond } from "next/font/google"
 import { StoryA5Card } from "@/components/stories/story-a5-card"
 import type { Story } from "@/types/database"
-
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-})
 
 export const dynamic = "force-dynamic"
 
@@ -25,7 +16,6 @@ export default async function StoryPreviewPage({
 
   return (
     <div
-      className={cormorant.variable}
       style={{
         minHeight: "100vh",
         background: "#e8e5df",
@@ -38,8 +28,17 @@ export default async function StoryPreviewPage({
       <style>{`
         @page { size: A5; margin: 0; }
         @media print {
-          html, body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; }
-          .story-a5-blatt { box-shadow: none !important; page-break-after: always; }
+          html, body {
+            background: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .story-a5-blatt {
+            box-shadow: none !important;
+            page-break-after: always;
+          }
           .print-hide { display: none !important; }
         }
       `}</style>
@@ -48,11 +47,14 @@ export default async function StoryPreviewPage({
         <div
           className="print-hide"
           style={{
-            fontFamily:
-              "system-ui, -apple-system, sans-serif",
+            fontFamily: "var(--font-assistant), system-ui, sans-serif",
             fontSize: "13px",
-            color: "#666",
+            color: "#5E5346",
             textAlign: "center",
+            background: "#fff",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            border: "1px solid #E7DED1",
           }}
         >
           Drücke <kbd style={kbdStyle}>Cmd</kbd> + <kbd style={kbdStyle}>P</kbd>{" "}
@@ -66,10 +68,11 @@ export default async function StoryPreviewPage({
 }
 
 const kbdStyle: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #ccc",
+  background: "#F8F6F3",
+  border: "1px solid #D9CFBF",
   borderRadius: "3px",
-  padding: "1px 5px",
+  padding: "1px 6px",
   fontSize: "11px",
-  fontFamily: "monospace",
+  fontFamily: "var(--font-geist-mono), monospace",
+  color: "#2C2C2C",
 }
