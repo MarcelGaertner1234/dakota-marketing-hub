@@ -187,4 +187,110 @@ export function registerSocialTools(server: McpServer) {
       }
     }
   )
+
+  // ── generate_social_illustration ────────────────────────────
+  server.tool(
+    "generate_social_illustration",
+    "Generate a KI illustration for a social media post in the Dakota hand-drawn style. Auto-maps the platform to the optimal aspect ratio (Instagram → square, Facebook → landscape, TikTok → portrait). Uses GPT Image 1.5, takes 15-30s, ~$0.18.",
+    {
+      post_id: z.string().describe("Social post UUID"),
+      hint: z
+        .string()
+        .optional()
+        .describe("Optional style hint, z.B. 'mit Bergblick', 'wärmere Töne'"),
+      size: z
+        .enum(["1024x1024", "1536x1024", "1024x1536"])
+        .optional()
+        .describe(
+          "Override the auto-mapped size (square / landscape / portrait). Default is auto from platform."
+        ),
+    },
+    async ({ post_id, hint, size }) => {
+      try {
+        const formData = new FormData()
+        if (hint) formData.set("hint", hint)
+        if (size) formData.set("size", size)
+        const res = await fetch(
+          `https://dakota-marketing-hub.vercel.app/api/social/${post_id}/generate-illustration`,
+          { method: "POST", body: formData }
+        )
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP ${res.status}`)
+        }
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] }
+      } catch (e: any) {
+        return {
+          content: [{ type: "text", text: JSON.stringify({ error: e.message }) }],
+          isError: true,
+        }
+      }
+    }
+  )
+
+  // ── generate_social_caption ─────────────────────────────────
+  server.tool(
+    "generate_social_caption",
+    "Generate a KI caption + hashtags for a social media post in the Dakota voice. Plattform-specific (short hooks for Instagram/TikTok, longer for Facebook). Uses Claude Haiku 4.5, ~2s, ~$0.001. Returns the generated text WITHOUT persisting — call update_post separately if you want to save it.",
+    {
+      post_id: z.string().describe("Social post UUID"),
+      hint: z
+        .string()
+        .optional()
+        .describe(
+          "Optional Marcel-input, z.B. 'Fokus auf Familien', 'Erwähn das Wetter'"
+        ),
+      auto_save: z
+        .boolean()
+        .optional()
+        .describe(
+          "If true, automatically saves the generated caption + hashtags to the post. Default false (returns only)."
+        ),
+    },
+    async ({ post_id, hint, auto_save }) => {
+      try {
+        const formData = new FormData()
+        if (hint) formData.set("hint", hint)
+        const res = await fetch(
+          `https://dakota-marketing-hub.vercel.app/api/social/${post_id}/generate-caption`,
+          { method: "POST", body: formData }
+        )
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP ${res.status}`)
+        }
+
+        // Optional: persist to the post immediately
+        if (auto_save && data.caption) {
+          const { error } = await supabase
+            .from("social_posts")
+            .update({
+              caption: data.caption,
+              hashtags: data.hashtags,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", post_id)
+          if (error) throw new Error(`auto_save failed: ${error.message}`)
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                { ...data, saved: auto_save === true },
+                null,
+                2
+              ),
+            },
+          ],
+        }
+      } catch (e: any) {
+        return {
+          content: [{ type: "text", text: JSON.stringify({ error: e.message }) }],
+          isError: true,
+        }
+      }
+    }
+  )
 }

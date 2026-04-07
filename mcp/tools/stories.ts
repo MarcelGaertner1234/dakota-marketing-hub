@@ -404,4 +404,46 @@ export function registerStoryTools(server: McpServer) {
       }
     }
   )
+
+  // ── generate_story_illustration ─────────────────────────────
+  server.tool(
+    "generate_story_illustration",
+    "Generate a hand-drawn KI illustration for a story in the Chesa-Rosatsch Tusche-Aquarell style. Uses GPT Image 1.5 via AI Gateway, takes 15-30s, ~$0.18 per image. The new image automatically replaces any existing illustration on the story.",
+    {
+      id_or_title: z
+        .string()
+        .describe("Story UUID or fuzzy title (e.g. 'Meringue')"),
+      hint: z
+        .string()
+        .optional()
+        .describe(
+          "Optional style hint, z.B. 'wärmere Töne', 'mehr Aquarell', 'rustikaler'"
+        ),
+    },
+    async ({ id_or_title, hint }) => {
+      try {
+        const id = await resolveStory(id_or_title)
+        const formData = new FormData()
+        if (hint) formData.set("hint", hint)
+        const res = await fetch(
+          `https://dakota-marketing-hub.vercel.app/api/stories/${id}/generate-illustration`,
+          { method: "POST", body: formData }
+        )
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP ${res.status}`)
+        }
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        }
+      } catch (e: any) {
+        return {
+          content: [
+            { type: "text", text: JSON.stringify({ error: e.message }) },
+          ],
+          isError: true,
+        }
+      }
+    }
+  )
 }
