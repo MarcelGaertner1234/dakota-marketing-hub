@@ -6,6 +6,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { compressImage } from "@/lib/utils/compress-image"
 import {
   Upload,
   Loader2,
@@ -55,6 +56,7 @@ export function SocialIllustrationModal({
   const [hint, setHint] = useState("")
   const [sizeFormat, setSizeFormat] = useState<SizeFormat>("auto")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isCompressing, setIsCompressing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -66,15 +68,29 @@ export function SocialIllustrationModal({
       ? `Auto (${FORMAT_LABELS[PLATFORM_DEFAULT[platform] as Exclude<SizeFormat, "auto">]})`
       : "Auto"
 
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setPhoto(file)
     setError(null)
     setResultUrl(null)
-    const reader = new FileReader()
-    reader.onload = () => setPhotoPreview(reader.result as string)
-    reader.readAsDataURL(file)
+    setIsCompressing(true)
+
+    try {
+      const compressed = await compressImage(file)
+      setPhoto(compressed)
+      const reader = new FileReader()
+      reader.onload = () => setPhotoPreview(reader.result as string)
+      reader.readAsDataURL(compressed)
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Foto-Verarbeitung fehlgeschlagen"
+      )
+      setPhoto(null)
+      setPhotoPreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    } finally {
+      setIsCompressing(false)
+    }
   }
 
   function handleClearPhoto() {
@@ -99,11 +115,21 @@ export function SocialIllustrationModal({
         { method: "POST", body: formData }
       )
 
-      const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || "Generierung fehlgeschlagen")
+        let msg: string
+        try {
+          const data = await res.json()
+          msg = data.error || `Fehler ${res.status}`
+        } catch {
+          msg =
+            res.status === 413
+              ? "Foto zu groß — bitte kleineres Bild wählen (max ~4 MB)."
+              : `Fehler ${res.status}: ${res.statusText || "Unbekannt"}`
+        }
+        throw new Error(msg)
       }
 
+      const data = await res.json()
       setResultUrl(data.url)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler")
@@ -188,7 +214,14 @@ export function SocialIllustrationModal({
           <div className="space-y-4">
             <div>
               <Label className="mb-2 block">Foto (optional)</Label>
-              {photoPreview ? (
+              {isCompressing ? (
+                <div className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#C5A572]" />
+                  <span className="text-sm text-gray-500">
+                    Foto wird verarbeitet…
+                  </span>
+                </div>
+              ) : photoPreview ? (
                 <div className="relative rounded-lg border border-[#E7DED1] bg-[#F8F6F3] p-2">
                   <img
                     src={photoPreview}
@@ -278,7 +311,7 @@ export function SocialIllustrationModal({
               <Button
                 className="bg-[#C5A572] hover:bg-[#A08050]"
                 onClick={handleGenerate}
-                disabled={isGenerating}
+                disabled={isGenerating || isCompressing}
               >
                 {isGenerating ? (
                   <>
