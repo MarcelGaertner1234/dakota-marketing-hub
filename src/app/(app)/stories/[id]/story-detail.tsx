@@ -21,6 +21,7 @@ import {
   Printer,
   ExternalLink,
   CheckCircle2,
+  Download,
   EyeOff,
   Sparkles,
 } from "lucide-react"
@@ -52,14 +53,104 @@ const CATEGORY_COLORS: Record<StoryCategory, string> = {
   location: "#3B82F6",
 }
 
+/**
+ * Lädt eine Illustration, brennt den Dakota-Hotel-Stempel rechts unten via
+ * Canvas ein (multiply + opacity 0.32, gleiche Ratios wie StoryA5Card), und
+ * triggert den Browser-Download als PNG. Kein Server, keine Dependency.
+ */
+async function downloadIllustrationWithLogo(
+  illustrationUrl: string,
+  storyTitle: string,
+): Promise<void> {
+  const loadImage = (
+    src: string,
+    crossOrigin?: "anonymous",
+  ): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const img = new Image()
+      if (crossOrigin) img.crossOrigin = crossOrigin
+      img.onload = () => resolve(img)
+      img.onerror = () =>
+        reject(new Error(`Bild konnte nicht geladen werden: ${src}`))
+      img.src = src
+    })
+
+  const [illustration, logo] = await Promise.all([
+    loadImage(illustrationUrl, "anonymous"),
+    loadImage("/branding/dakota-hotel-logo.jpeg"),
+  ])
+
+  const canvas = document.createElement("canvas")
+  canvas.width = illustration.naturalWidth
+  canvas.height = illustration.naturalHeight
+  const ctx = canvas.getContext("2d")
+  if (!ctx) throw new Error("Canvas 2D context nicht verfügbar")
+
+  // Weisser Grund falls die Illustration transparent ist
+  ctx.fillStyle = "#ffffff"
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(illustration, 0, 0, canvas.width, canvas.height)
+
+  // Stempel unten rechts — identische Ratios zur A5-Card (24mm / 112mm Breite, 3mm Padding)
+  const logoTargetWidth = canvas.width * (24 / 112)
+  const logoAspect = logo.naturalWidth / logo.naturalHeight
+  const logoTargetHeight = logoTargetWidth / logoAspect
+  const padding = canvas.width * (3 / 112)
+  const x = canvas.width - logoTargetWidth - padding
+  const y = canvas.height - logoTargetHeight - padding
+
+  ctx.save()
+  ctx.globalAlpha = 0.32
+  ctx.globalCompositeOperation = "multiply"
+  ctx.drawImage(logo, x, y, logoTargetWidth, logoTargetHeight)
+  ctx.restore()
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png"),
+  )
+  if (!blob) throw new Error("Canvas toBlob liefert null")
+
+  const slug =
+    storyTitle
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "illustration"
+  const downloadUrl = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = downloadUrl
+  a.download = `dakota-${slug}.png`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(downloadUrl)
+}
+
 export function StoryDetail({ story }: { story: Story }) {
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isUploading, setIsUploading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+
+  async function handleDownloadIllustration() {
+    if (!story.illustration_url || isDownloading) return
+    setIsDownloading(true)
+    try {
+      await downloadIllustrationWithLogo(story.illustration_url, story.title)
+    } catch (err) {
+      console.error("Illustration-Download fehlgeschlagen:", err)
+      alert(
+        "Illustration konnte nicht heruntergeladen werden. Bitte erneut versuchen.",
+      )
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   function handleSave(formData: FormData) {
     startTransition(async () => {
@@ -215,13 +306,28 @@ export function StoryDetail({ story }: { story: Story }) {
                   KI generieren
                 </Button>
                 {story.illustration_url && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRemoveIllustration}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadIllustration}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="mr-1.5 h-3.5 w-3.5" />
+                      )}
+                      {isDownloading ? "Lädt..." : "Download"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveIllustration}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
                 )}
               </div>
             </CardHeader>
