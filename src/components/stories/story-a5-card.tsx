@@ -131,6 +131,7 @@ export function StoryA5Card({
         {/* ILLUSTRATION — gross, full-bleed Landscape (1.5:1 match) */}
         <div
           style={{
+            position: "relative",
             width: "112mm",
             height: "75mm",
             margin: "0 auto 4mm",
@@ -148,15 +149,36 @@ export function StoryA5Card({
           }}
         >
           {story.illustration_url ? (
-            <img
-              src={story.illustration_url}
-              alt=""
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-              }}
-            />
+            <>
+              <img
+                src={story.illustration_url}
+                alt=""
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  objectFit: "contain",
+                }}
+              />
+              {/* Dezenter Dakota-Hotel-Stempel als Wasserzeichen in der Ecke der Illustration.
+                  mix-blend-mode: multiply ist essentiell, weil die JPEG einen weissen Hintergrund
+                  hat — multiply rechnet Weiss weg und lässt nur den schwarzen Stempel übrig. */}
+              <img
+                src="/branding/dakota-hotel-logo.jpeg"
+                alt=""
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  bottom: "3mm",
+                  right: "3mm",
+                  width: "24mm",
+                  height: "auto",
+                  opacity: 0.32,
+                  mixBlendMode: "multiply",
+                  pointerEvents: "none",
+                  userSelect: "none",
+                }}
+              />
+            </>
           ) : (
             <div
               style={{
