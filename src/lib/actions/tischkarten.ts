@@ -7,8 +7,39 @@ import {
   FOOTER_SIGNATURES,
   DATE_LOCALES,
 } from "@/lib/ai/generate-tischkarte-text"
+import { generateStoryIllustration } from "@/lib/ai/generate-illustration"
 import { revalidatePath } from "next/cache"
 import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
+
+// ──────────────────────────────────────────────────────────────
+// Occasion-specific illustration scenes (same as API route)
+// ──────────────────────────────────────────────────────────────
+const OCCASION_SCENE: Record<TischkartenOccasion, { title: string; hint: string }> = {
+  birthday: {
+    title: "Festive birthday table setting with candles and decorations",
+    hint: "A warm birthday scene: lit candles on a rustic cake, small wrapped gifts, wildflowers. Celebratory but intimate, alpine restaurant atmosphere.",
+  },
+  anniversary: {
+    title: "Romantic anniversary dinner setting for two",
+    hint: "An elegant romantic scene: two wine glasses, a single rose, soft candlelight reflected on polished wood. Intimate and warm, not kitschy.",
+  },
+  wedding: {
+    title: "Elegant wedding celebration table with champagne",
+    hint: "A refined wedding celebration: champagne flutes, delicate floral arrangement with alpine flowers, subtle gold accents. Festive yet tasteful.",
+  },
+  family: {
+    title: "Warm family gathering around a large wooden table",
+    hint: "A cozy family scene: a generously set large table, shared dishes, bread basket, warm lighting. Multiple place settings suggesting togetherness.",
+  },
+  business: {
+    title: "Professional business dinner setting in alpine restaurant",
+    hint: "A polished business setting: crisp napkins, mineral water, a notepad beside the plate. Professional yet inviting, the hangar architecture visible.",
+  },
+  none: {
+    title: "Welcome scene at the Dakota Air Lounge hangar restaurant",
+    hint: "The Dakota atmosphere: warm hangar interior, a beautifully set table awaiting guests, soft light falling through large windows onto alpine wood.",
+  },
+}
 
 // ──────────────────────────────────────────────────────────────
 // Helpers
@@ -171,6 +202,50 @@ export async function createTischkarte(formData: FormData) {
     .single()
 
   if (error) throw error
+
+  // 5. Auto-generate illustration based on occasion + hint
+  try {
+    const scene = OCCASION_SCENE[occasion]
+    const combinedHint = [scene.hint, customHint].filter(Boolean).join(" — ")
+
+    const result = await generateStoryIllustration({
+      category: "house",
+      title: scene.title,
+      subtitle,
+      contextExcerpt: generated.paragraph_1.slice(0, 300),
+      hint: combinedHint,
+      storyId: data.id,
+    })
+
+    // Upload to Supabase Storage
+    const ext = result.mediaType === "image/jpeg" ? "jpg" : "png"
+    const fileName = `tischkarte/${data.id}/ai-${Date.now()}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from("story-illustrations")
+      .upload(fileName, result.imageData, {
+        contentType: result.mediaType,
+        upsert: false,
+      })
+
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage
+        .from("story-illustrations")
+        .getPublicUrl(fileName)
+
+      await supabase
+        .from("tischkarten")
+        .update({
+          illustration_url: urlData.publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", data.id)
+    }
+  } catch (illustrationErr) {
+    // Non-fatal: card is created, illustration just stays as default
+    console.error("Auto-illustration failed (non-fatal):", illustrationErr)
+  }
+
   revalidatePath("/tischkarten")
   return data
 }
