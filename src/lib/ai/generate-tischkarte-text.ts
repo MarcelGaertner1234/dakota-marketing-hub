@@ -1,32 +1,21 @@
 /**
  * Generates the personalized welcome text for a Dakota Tischkarte.
  *
- * Routes through Vercel AI Gateway using a small fast model — text generation
- * is cheap (~$0.001 per call) and fast (~2s) so Marcel can iterate at the
- * speed of "Name eintippen → Generieren → drucken".
- *
- * Authentication: same OIDC token / AI_GATEWAY_API_KEY as the existing
- * generate-illustration.ts — no extra env setup required.
- *
- * Output is strictly typed via generateObject + Zod, so the calling
- * server-action can rely on the shape and never has to parse free text.
+ * Supports 4 languages: de, en, fr, it.
+ * Routes through Vercel AI Gateway using a small fast model.
  */
 
 import { generateObject } from "ai"
 import { z } from "zod"
-import type { TischkartenOccasion } from "@/types/database"
+import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
 // ──────────────────────────────────────────────────────────────
-// Model — small, fast, instruction-following
+// Model
 // ──────────────────────────────────────────────────────────────
-// Anthropic Claude Haiku 4.5 via AI Gateway. Excellent at following
-// the Dakota voice instructions, generates warm German prose, ~2s/call.
-// Verified against https://ai-gateway.vercel.sh/v1/models — slug uses DOT
-// (claude-haiku-4.5), not hyphen. Updating this single string swaps providers.
 const TEXT_MODEL = "anthropic/claude-haiku-4.5"
 
 // ──────────────────────────────────────────────────────────────
-// Output shape — what the LLM must return
+// Output shape
 // ──────────────────────────────────────────────────────────────
 const TischkarteTextSchema = z.object({
   title: z
@@ -34,61 +23,197 @@ const TischkarteTextSchema = z.object({
     .min(3)
     .max(80)
     .describe(
-      "Warmer persönlicher Titel, idealerweise mit dem Gastnamen. Z.B. 'Willkommen, Familie Müller' oder 'Schön, dass ihr da seid'."
+      "Warm personal title, ideally with the guest's name."
     ),
   paragraph_1: z
     .string()
     .min(40)
     .max(400)
     .describe(
-      "Erster Absatz: warmes Willkommen, das den Anlass aufgreift wenn vorhanden. Spricht den Gast persönlich an."
+      "First paragraph: warm welcome referencing the occasion if present."
     ),
   paragraph_2: z
     .string()
     .min(40)
     .max(400)
     .describe(
-      "Zweiter Absatz: erzählt etwas vom Dakota — der Hangar, Meiringen, das Gefühl des Ankommens. Webt eine kleine Geschichte."
+      "Second paragraph: tells something about the Dakota — the hangar, Meiringen, the feeling of arriving."
     ),
   paragraph_3: z
     .string()
     .min(20)
     .max(300)
     .describe(
-      "Dritter Absatz: kurzer, herzlicher Schlusssatz. Wunsch für den Abend, eine Einladung sich zuhause zu fühlen."
+      "Third paragraph: short heartfelt closing. A wish for the evening."
     ),
 })
 
 export type GeneratedTischkarteText = z.infer<typeof TischkarteTextSchema>
 
 // ──────────────────────────────────────────────────────────────
-// Voice / System Prompt — definiert die Dakota-Stimme
+// Language-specific voice prompts
 // ──────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `Du schreibst persönliche Willkommens-Texte für Tischkarten im Dakota Air Lounge — einem Restaurant in einem alten Flugzeug-Hangar in Meiringen, Berner Oberland, Schweiz.
+
+const SYSTEM_PROMPTS: Record<TischkartenLanguage, string> = {
+  de: `Du schreibst persoenliche Willkommens-Texte fuer Tischkarten im Dakota Air Lounge — einem Restaurant in einem alten Flugzeug-Hangar in Meiringen, Berner Oberland, Schweiz.
 
 DIE STIMME DAKOTA:
-- Warm, persönlich, nahbar — wie ein Brief von guten Freunden
+- Warm, persoenlich, nahbar — wie ein Brief von guten Freunden
 - Schweizerisches Hochdeutsch, NIE Mundart, nie Anglizismen
-- Du-Form bei Familien und privaten Anlässen, Sie-Form bei Geschäftsessen
+- Du-Form bei Familien und privaten Anlaessen, Sie-Form bei Geschaeftsessen
 - Klar und schlicht — keine Floskeln, keine Marketing-Sprache, keine Superlative
 - Lokal verankert: Meiringen, Reichenbachfall, Berner Oberland, der alte Hangar, das Flugzeug "Dakota"
 - Die Crew ist eine Familie, nicht ein "Service-Team"
 
 WAS DIE KARTE LEISTEN SOLL:
-- Den Gast beim Eintreffen am Tisch persönlich begrüssen
-- Das Gefühl vermitteln "wir haben auf euch gewartet, ihr seid hier richtig"
-- Den Anlass beiläufig aufgreifen wenn vorhanden, aber nicht überladen
-- Eine kleine Atmosphäre schaffen — der Hangar, das Licht, das Ankommen
+- Den Gast beim Eintreffen am Tisch persoenlich begruessen
+- Das Gefuehl vermitteln "wir haben auf euch gewartet, ihr seid hier richtig"
+- Den Anlass beilaeufig aufgreifen wenn vorhanden, aber nicht ueberladen
+- Eine kleine Atmosphaere schaffen — der Hangar, das Licht, das Ankommen
 
 WAS DU NIE TUN DARFST:
-- Keine Übertreibungen ("unvergesslicher Abend", "kulinarisches Highlight")
-- Keine standardisierten Floskeln ("Wir wünschen Ihnen einen schönen Aufenthalt")
-- Keine Aufzählung von Gerichten oder Werbung
+- Keine Uebertreibungen ("unvergesslicher Abend", "kulinarisches Highlight")
+- Keine standardisierten Floskeln ("Wir wuenschen Ihnen einen schoenen Aufenthalt")
+- Keine Aufzaehlung von Gerichten oder Werbung
 - Keine Fragen an den Gast
 - Keine Emojis, keine Sterne, keine Sonderzeichen ausser normaler Satzzeichen
 - Nicht mehrere Anliegen in einen Satz packen
 
-LÄNGE: Drei Absätze, jeder 2-4 Sätze. Kompakt, lesbar, leise.`
+LAENGE: Drei Absaetze, jeder 2-4 Saetze. Kompakt, lesbar, leise.`,
+
+  en: `You write personal welcome cards for guests at the Dakota Air Lounge — a restaurant inside a converted airplane hangar in Meiringen, Bernese Oberland, Switzerland.
+
+THE DAKOTA VOICE:
+- Warm, personal, approachable — like a letter from good friends
+- Elegant but not formal — conversational English, no corporate speak
+- Locally rooted: Meiringen, Reichenbach Falls, Bernese Oberland, the old hangar, the "Dakota" airplane
+- The crew is a family, not a "service team"
+
+WHAT THE CARD SHOULD DO:
+- Greet the guest personally as they arrive at their table
+- Convey the feeling "we've been waiting for you, you're in the right place"
+- Weave in the occasion naturally if present, without overdoing it
+- Create a sense of atmosphere — the hangar, the light, the feeling of arrival
+
+WHAT YOU MUST NEVER DO:
+- No exaggerations ("unforgettable evening", "culinary highlight")
+- No stock phrases ("We wish you a pleasant stay")
+- No listing of dishes or advertising
+- No questions to the guest
+- No emojis, no stars, no special characters beyond normal punctuation
+
+LENGTH: Three paragraphs, 2-4 sentences each. Compact, readable, quiet.`,
+
+  fr: `Tu ecris des cartes de bienvenue personnalisees pour les hotes du Dakota Air Lounge — un restaurant installe dans un ancien hangar a avions a Meiringen, dans l'Oberland bernois, en Suisse.
+
+LA VOIX DAKOTA:
+- Chaleureuse, personnelle, accessible — comme une lettre de bons amis
+- Francais elegant mais pas guinde — ni trop familier, ni corporatif
+- Ancre localement: Meiringen, les chutes du Reichenbach, l'Oberland bernois, le vieux hangar, l'avion "Dakota"
+- L'equipe est une famille, pas un "personnel de service"
+
+CE QUE LA CARTE DOIT ACCOMPLIR:
+- Accueillir l'hote personnellement a son arrivee a table
+- Transmettre le sentiment "nous vous attendions, vous etes au bon endroit"
+- Integrer l'occasion naturellement si presente, sans en faire trop
+- Creer une atmosphere — le hangar, la lumiere, le sentiment d'arriver
+
+CE QUE TU NE DOIS JAMAIS FAIRE:
+- Pas d'exagerations ("soiree inoubliable", "experience culinaire unique")
+- Pas de formules toutes faites ("Nous vous souhaitons un agreable sejour")
+- Pas de liste de plats ni de publicite
+- Pas de questions a l'hote
+- Pas d'emojis, d'etoiles ou de caracteres speciaux
+
+LONGUEUR: Trois paragraphes, 2-4 phrases chacun. Compact, lisible, sobre.`,
+
+  it: `Scrivi biglietti di benvenuto personalizzati per gli ospiti del Dakota Air Lounge — un ristorante in un vecchio hangar aereo a Meiringen, nell'Oberland bernese, in Svizzera.
+
+LA VOCE DAKOTA:
+- Calda, personale, accogliente — come una lettera da buoni amici
+- Italiano elegante ma non formale — ne troppo confidenziale, ne aziendale
+- Radicato localmente: Meiringen, le cascate di Reichenbach, l'Oberland bernese, il vecchio hangar, l'aereo "Dakota"
+- L'equipaggio e una famiglia, non un "team di servizio"
+
+COSA DEVE FARE IL BIGLIETTO:
+- Accogliere l'ospite personalmente al suo arrivo al tavolo
+- Trasmettere la sensazione "vi stavamo aspettando, siete nel posto giusto"
+- Integrare l'occasione in modo naturale se presente, senza esagerare
+- Creare un'atmosfera — l'hangar, la luce, la sensazione di arrivare
+
+COSA NON DEVI MAI FARE:
+- Nessuna esagerazione ("serata indimenticabile", "esperienza culinaria")
+- Nessuna frase fatta ("Vi auguriamo un piacevole soggiorno")
+- Nessun elenco di piatti o pubblicita
+- Nessuna domanda all'ospite
+- Nessun emoji, stelle o caratteri speciali
+
+LUNGHEZZA: Tre paragrafi, 2-4 frasi ciascuno. Compatto, leggibile, discreto.`,
+}
+
+// ──────────────────────────────────────────────────────────────
+// Language-specific labels
+// ──────────────────────────────────────────────────────────────
+
+const OCCASION_LABELS: Record<TischkartenLanguage, Record<TischkartenOccasion, string>> = {
+  de: {
+    birthday: "Geburtstag",
+    anniversary: "Jahrestag",
+    business: "Geschaeftsessen",
+    family: "Familienfeier",
+    wedding: "Hochzeit",
+    none: "kein besonderer Anlass",
+  },
+  en: {
+    birthday: "Birthday",
+    anniversary: "Anniversary",
+    business: "Business dinner",
+    family: "Family celebration",
+    wedding: "Wedding",
+    none: "no special occasion",
+  },
+  fr: {
+    birthday: "Anniversaire",
+    anniversary: "Anniversaire de mariage",
+    business: "Diner d'affaires",
+    family: "Fete de famille",
+    wedding: "Mariage",
+    none: "pas d'occasion particuliere",
+  },
+  it: {
+    birthday: "Compleanno",
+    anniversary: "Anniversario",
+    business: "Cena di lavoro",
+    family: "Festa di famiglia",
+    wedding: "Matrimonio",
+    none: "nessuna occasione particolare",
+  },
+}
+
+const WRITE_INSTRUCTION: Record<TischkartenLanguage, string> = {
+  de: "Verfasse Titel und drei Absaetze gemaess dem strikten Schema. Personalisiert, warm, im Dakota-Ton.",
+  en: "Write the title and three paragraphs following the strict schema. Personalized, warm, in the Dakota tone.",
+  fr: "Redige le titre et trois paragraphes selon le schema strict. Personnalise, chaleureux, dans le ton Dakota.",
+  it: "Scrivi il titolo e tre paragrafi secondo lo schema rigoroso. Personalizzato, caldo, nel tono Dakota.",
+}
+
+const FOOTER_SIGNATURES: Record<TischkartenLanguage, string> = {
+  de: "Ihre Dakota Crew",
+  en: "Your Dakota Crew",
+  fr: "Votre equipe Dakota",
+  it: "Il vostro team Dakota",
+}
+
+// ──────────────────────────────────────────────────────────────
+// Date locale mapping
+// ──────────────────────────────────────────────────────────────
+
+const DATE_LOCALES: Record<TischkartenLanguage, string> = {
+  de: "de-CH",
+  en: "en-GB",
+  fr: "fr-CH",
+  it: "it-CH",
+}
 
 // ──────────────────────────────────────────────────────────────
 // Input Type
@@ -99,16 +224,13 @@ export interface GenerateTischkarteTextInput {
   partySize?: number | null
   reservationDate?: string | null
   customHint?: string | null
+  language?: TischkartenLanguage | null
 }
 
-const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
-  birthday: "Geburtstag",
-  anniversary: "Jahrestag",
-  business: "Geschäftsessen",
-  family: "Familienfeier",
-  wedding: "Hochzeit",
-  none: "kein besonderer Anlass",
-}
+// ──────────────────────────────────────────────────────────────
+// Exports for shared use
+// ──────────────────────────────────────────────────────────────
+export { OCCASION_LABELS, FOOTER_SIGNATURES, DATE_LOCALES }
 
 // ──────────────────────────────────────────────────────────────
 // Main Function
@@ -116,53 +238,77 @@ const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
 export async function generateTischkarteText(
   input: GenerateTischkarteTextInput
 ): Promise<GeneratedTischkarteText> {
-  const userPromptParts: string[] = [
-    `Schreibe eine persönliche Tischkarte für: ${input.guestName}`,
-  ]
+  const lang: TischkartenLanguage = input.language ?? "de"
+  const labels = OCCASION_LABELS[lang]
+
+  const promptIntro: Record<TischkartenLanguage, string> = {
+    de: `Schreibe eine persoenliche Tischkarte fuer: ${input.guestName}`,
+    en: `Write a personal table card for: ${input.guestName}`,
+    fr: `Ecris une carte de table personnalisee pour: ${input.guestName}`,
+    it: `Scrivi un biglietto da tavolo personalizzato per: ${input.guestName}`,
+  }
+
+  const userPromptParts: string[] = [promptIntro[lang]]
 
   if (input.occasion && input.occasion !== "none") {
-    userPromptParts.push(`Anlass: ${OCCASION_LABELS[input.occasion]}`)
+    const occasionLabel = labels[input.occasion]
+    const prefixes: Record<TischkartenLanguage, string> = {
+      de: "Anlass",
+      en: "Occasion",
+      fr: "Occasion",
+      it: "Occasione",
+    }
+    userPromptParts.push(`${prefixes[lang]}: ${occasionLabel}`)
   }
 
   if (input.partySize && input.partySize > 0) {
+    const personLabels: Record<TischkartenLanguage, [string, string]> = {
+      de: ["Person", "Personen"],
+      en: ["person", "people"],
+      fr: ["personne", "personnes"],
+      it: ["persona", "persone"],
+    }
+    const [sing, plur] = personLabels[lang]
     userPromptParts.push(
-      `Personenanzahl: ${input.partySize} ${input.partySize === 1 ? "Person" : "Personen"}`
+      `${input.partySize} ${input.partySize === 1 ? sing : plur}`
     )
   }
 
   if (input.reservationDate) {
-    // Format date as German "Sonntag, 7. April 2026"
     try {
       const d = new Date(input.reservationDate)
-      const formatted = d.toLocaleDateString("de-CH", {
+      const formatted = d.toLocaleDateString(DATE_LOCALES[lang], {
         weekday: "long",
         day: "numeric",
         month: "long",
         year: "numeric",
       })
-      userPromptParts.push(`Datum der Reservierung: ${formatted}`)
+      userPromptParts.push(formatted)
     } catch {
-      userPromptParts.push(`Datum der Reservierung: ${input.reservationDate}`)
+      userPromptParts.push(input.reservationDate)
     }
   }
 
   if (input.customHint && input.customHint.trim().length > 0) {
+    const hintPrefixes: Record<TischkartenLanguage, string> = {
+      de: "Zusaetzlicher Kontext von der Crew",
+      en: "Additional context from the crew",
+      fr: "Contexte supplementaire de l'equipe",
+      it: "Contesto aggiuntivo dal team",
+    }
     userPromptParts.push(
-      `Zusätzlicher Kontext von der Crew: ${input.customHint.trim()}`
+      `${hintPrefixes[lang]}: ${input.customHint.trim()}`
     )
   }
 
-  userPromptParts.push(
-    "",
-    "Verfasse Titel und drei Absätze gemäss dem strikten Schema. Personalisiert, warm, im Dakota-Ton."
-  )
+  userPromptParts.push("", WRITE_INSTRUCTION[lang])
 
   const userPrompt = userPromptParts.join("\n")
 
   const result = await generateObject({
     model: TEXT_MODEL,
     schema: TischkarteTextSchema,
-    system: SYSTEM_PROMPT,
+    system: SYSTEM_PROMPTS[lang],
     prompt: userPrompt,
     temperature: 0.8,
     providerOptions: {
@@ -170,6 +316,7 @@ export async function generateTischkarteText(
         tags: [
           "feature:tischkarte-text",
           `occasion:${input.occasion ?? "none"}`,
+          `lang:${lang}`,
         ],
       },
     },

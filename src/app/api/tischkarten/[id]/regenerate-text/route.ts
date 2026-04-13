@@ -1,30 +1,41 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { generateTischkarteText } from "@/lib/ai/generate-tischkarte-text"
-import type { TischkartenOccasion } from "@/types/database"
+import {
+  generateTischkarteText,
+  OCCASION_LABELS,
+  FOOTER_SIGNATURES,
+  DATE_LOCALES,
+} from "@/lib/ai/generate-tischkarte-text"
+import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
 export const maxDuration = 60
 
-const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
-  birthday: "Geburtstag",
-  anniversary: "Jahrestag",
-  business: "Geschäftsessen",
-  family: "Familienfeier",
-  wedding: "Hochzeit",
-  none: "",
-}
+const VALID_LANGUAGES: TischkartenLanguage[] = ["de", "en", "fr", "it"]
 
 function buildSubtitle(input: {
   reservationDate: string | null
   tableNumber: string | null
   occasion: TischkartenOccasion | null
+  language: TischkartenLanguage
 }): string | null {
+  const lang = input.language
   const parts: string[] = []
-  if (input.tableNumber) parts.push(`Tisch ${input.tableNumber}`)
+
+  const tableLabels: Record<TischkartenLanguage, string> = {
+    de: "Tisch",
+    en: "Table",
+    fr: "Table",
+    it: "Tavolo",
+  }
+
+  if (input.tableNumber) {
+    parts.push(`${tableLabels[lang]} ${input.tableNumber}`)
+  }
+
   if (input.reservationDate) {
     try {
       const d = new Date(input.reservationDate)
-      const formatted = d.toLocaleDateString("de-CH", {
+      const formatted = d.toLocaleDateString(DATE_LOCALES[lang], {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -34,20 +45,19 @@ function buildSubtitle(input: {
       parts.push(input.reservationDate)
     }
   }
+
   if (input.occasion && input.occasion !== "none") {
-    parts.push(OCCASION_LABELS[input.occasion])
+    parts.push(OCCASION_LABELS[lang][input.occasion])
   }
+
   return parts.length > 0 ? parts.join(" · ") : null
 }
 
 /**
  * POST /api/tischkarten/[id]/regenerate-text
  *
- * Regenerates the KI text for an existing tischkarte using its stored
- * inputs (guest_name, occasion, party_size, etc.) — useful when the
- * first generation didn't quite hit the right tone.
- *
- * Mirrors the regenerateTischkarteText server action for HTTP access.
+ * Regenerates the KI text for an existing tischkarte.
+ * Respects the stored language setting.
  */
 export async function POST(
   _request: NextRequest,
@@ -75,18 +85,23 @@ export async function POST(
       )
     }
 
+    const language: TischkartenLanguage =
+      VALID_LANGUAGES.includes(row.language) ? row.language : "de"
+
     const generated = await generateTischkarteText({
       guestName: row.guest_name,
       occasion: row.occasion,
       partySize: row.party_size,
       reservationDate: row.reservation_date,
       customHint: row.custom_hint,
+      language,
     })
 
     const subtitle = buildSubtitle({
       reservationDate: row.reservation_date,
       tableNumber: row.table_number,
       occasion: row.occasion,
+      language,
     })
 
     const { data: updated, error: updateErr } = await supabase
@@ -97,6 +112,7 @@ export async function POST(
         paragraph_1: generated.paragraph_1,
         paragraph_2: generated.paragraph_2,
         paragraph_3: generated.paragraph_3,
+        footer_signature: FOOTER_SIGNATURES[language],
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)

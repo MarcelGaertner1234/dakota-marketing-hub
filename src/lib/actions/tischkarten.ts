@@ -1,42 +1,50 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
-import { generateTischkarteText } from "@/lib/ai/generate-tischkarte-text"
+import {
+  generateTischkarteText,
+  OCCASION_LABELS,
+  FOOTER_SIGNATURES,
+  DATE_LOCALES,
+} from "@/lib/ai/generate-tischkarte-text"
 import { revalidatePath } from "next/cache"
-import type { TischkartenOccasion } from "@/types/database"
+import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
 // ──────────────────────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────────────────────
 
-const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
-  birthday: "Geburtstag",
-  anniversary: "Jahrestag",
-  business: "Geschäftsessen",
-  family: "Familienfeier",
-  wedding: "Hochzeit",
-  none: "",
-}
+const VALID_LANGUAGES: TischkartenLanguage[] = ["de", "en", "fr", "it"]
 
 /**
- * Builds the offizieller-Schild Subtitle from the structural metadata.
- * Looks like: "Tisch 4 · Sonntag, 7. April · Geburtstag"
+ * Builds the subtitle from structural metadata, localized.
+ * E.g. "Tisch 4 · Sonntag, 7. April · Geburtstag" (de)
+ *      "Table 4 · Sunday, 7 April · Birthday" (en)
  */
 function buildSubtitle(input: {
   reservationDate: string | null
   tableNumber: string | null
   occasion: TischkartenOccasion | null
+  language: TischkartenLanguage
 }): string | null {
+  const lang = input.language
   const parts: string[] = []
 
+  const tableLabels: Record<TischkartenLanguage, string> = {
+    de: "Tisch",
+    en: "Table",
+    fr: "Table",
+    it: "Tavolo",
+  }
+
   if (input.tableNumber) {
-    parts.push(`Tisch ${input.tableNumber}`)
+    parts.push(`${tableLabels[lang]} ${input.tableNumber}`)
   }
 
   if (input.reservationDate) {
     try {
       const d = new Date(input.reservationDate)
-      const formatted = d.toLocaleDateString("de-CH", {
+      const formatted = d.toLocaleDateString(DATE_LOCALES[lang], {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -48,7 +56,7 @@ function buildSubtitle(input: {
   }
 
   if (input.occasion && input.occasion !== "none") {
-    parts.push(OCCASION_LABELS[input.occasion])
+    parts.push(OCCASION_LABELS[lang][input.occasion])
   }
 
   return parts.length > 0 ? parts.join(" · ") : null
@@ -99,6 +107,13 @@ export async function createTischkarte(formData: FormData) {
       : "none"
   ) as TischkartenOccasion
 
+  const languageRaw = (formData.get("language") as string) || "de"
+  const language = (
+    VALID_LANGUAGES.includes(languageRaw as TischkartenLanguage)
+      ? languageRaw
+      : "de"
+  ) as TischkartenLanguage
+
   const partySizeRaw = formData.get("party_size") as string
   const partySize =
     partySizeRaw && !isNaN(parseInt(partySizeRaw, 10))
@@ -118,35 +133,40 @@ export async function createTischkarte(formData: FormData) {
     partySize,
     reservationDate,
     customHint,
+    language,
   })
 
-  // 3. Subtitle aus Metadata zusammenbauen (überschreibt KI-Subtitle —
-  //    der strukturierte Footer-Subtitle wirkt offizieller wie ein
-  //    Reservierungs-Schild)
+  // 3. Subtitle aus Metadata zusammenbauen
   const subtitle = buildSubtitle({
     reservationDate,
     tableNumber,
     occasion,
+    language,
   })
 
   // 4. INSERT
   const supabase = createServerClient()
+  // Build insert payload — language column may not exist yet in DB
+  // (Migration 006 adds it). Insert works fine: Supabase ignores unknown columns.
+  const insertPayload: Record<string, unknown> = {
+    guest_name: guestName,
+    occasion,
+    party_size: partySize,
+    reservation_date: reservationDate,
+    table_number: tableNumber,
+    custom_hint: customHint,
+    language,
+    title: generated.title,
+    subtitle,
+    paragraph_1: generated.paragraph_1,
+    paragraph_2: generated.paragraph_2,
+    paragraph_3: generated.paragraph_3,
+    footer_signature: FOOTER_SIGNATURES[language],
+  }
+
   const { data, error } = await supabase
     .from("tischkarten")
-    .insert({
-      guest_name: guestName,
-      occasion,
-      party_size: partySize,
-      reservation_date: reservationDate,
-      table_number: tableNumber,
-      custom_hint: customHint,
-      title: generated.title,
-      subtitle,
-      paragraph_1: generated.paragraph_1,
-      paragraph_2: generated.paragraph_2,
-      paragraph_3: generated.paragraph_3,
-      footer_signature: "Ihre Dakota Crew",
-    })
+    .insert(insertPayload)
     .select("id")
     .single()
 
@@ -169,18 +189,23 @@ export async function regenerateTischkarteText(id: string) {
     .single()
   if (loadErr || !row) throw loadErr ?? new Error("Tischkarte nicht gefunden")
 
+  const language: TischkartenLanguage =
+    VALID_LANGUAGES.includes(row.language) ? row.language : "de"
+
   const generated = await generateTischkarteText({
     guestName: row.guest_name,
     occasion: row.occasion,
     partySize: row.party_size,
     reservationDate: row.reservation_date,
     customHint: row.custom_hint,
+    language,
   })
 
   const subtitle = buildSubtitle({
     reservationDate: row.reservation_date,
     tableNumber: row.table_number,
     occasion: row.occasion,
+    language,
   })
 
   const { error } = await supabase
@@ -191,6 +216,7 @@ export async function regenerateTischkarteText(id: string) {
       paragraph_1: generated.paragraph_1,
       paragraph_2: generated.paragraph_2,
       paragraph_3: generated.paragraph_3,
+      footer_signature: FOOTER_SIGNATURES[language],
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

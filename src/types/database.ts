@@ -233,6 +233,8 @@ export type TischkartenOccasion =
   | 'wedding'
   | 'none'
 
+export type TischkartenLanguage = 'de' | 'en' | 'fr' | 'it'
+
 export interface Tischkarte {
   id: string
   // Eingaben
@@ -242,6 +244,7 @@ export interface Tischkarte {
   reservation_date: string | null
   table_number: string | null
   custom_hint: string | null
+  language: TischkartenLanguage
   // KI-generierter Inhalt
   title: string
   subtitle: string | null

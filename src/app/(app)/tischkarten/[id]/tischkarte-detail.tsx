@@ -25,7 +25,7 @@ import {
   deleteTischkarte,
 } from "@/lib/actions/tischkarten"
 import { useRouter } from "next/navigation"
-import type { Tischkarte, TischkartenOccasion } from "@/types/database"
+import type { Tischkarte, TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 import { TischkarteIllustrationModal } from "@/components/tischkarten/tischkarte-illustration-modal"
 
 const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
@@ -35,6 +35,13 @@ const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
   family: "Familienfeier",
   wedding: "Hochzeit",
   none: "—",
+}
+
+const LANGUAGE_LABELS: Record<TischkartenLanguage, string> = {
+  de: "DE",
+  en: "EN",
+  fr: "FR",
+  it: "IT",
 }
 
 function formatDate(iso: string | null): string {
@@ -104,6 +111,11 @@ export function TischkarteDetail({ tischkarte }: { tischkarte: Tischkarte }) {
             {tischkarte.occasion && tischkarte.occasion !== "none" && (
               <Badge variant="outline">
                 {OCCASION_LABELS[tischkarte.occasion]}
+              </Badge>
+            )}
+            {tischkarte.language && tischkarte.language !== "de" && (
+              <Badge variant="outline" className="font-mono text-xs">
+                {LANGUAGE_LABELS[tischkarte.language]}
               </Badge>
             )}
           </div>

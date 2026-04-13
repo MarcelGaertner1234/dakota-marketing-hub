@@ -1,26 +1,48 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateStoryIllustration } from "@/lib/ai/generate-illustration"
+import type { TischkartenOccasion } from "@/types/database"
 
 // Image generation takes 10-30 seconds — extend the timeout generously.
 export const maxDuration = 120
 
+// ──────────────────────────────────────────────────────────────
+// Occasion-specific illustration prompts — each occasion gets a
+// distinct visual scene so cards look truly different.
+// ──────────────────────────────────────────────────────────────
+const OCCASION_SCENE: Record<TischkartenOccasion, { title: string; hint: string }> = {
+  birthday: {
+    title: "Festive birthday table setting with candles and decorations",
+    hint: "A warm birthday scene: lit candles on a rustic cake, small wrapped gifts, wildflowers. Celebratory but intimate, alpine restaurant atmosphere.",
+  },
+  anniversary: {
+    title: "Romantic anniversary dinner setting for two",
+    hint: "An elegant romantic scene: two wine glasses, a single rose, soft candlelight reflected on polished wood. Intimate and warm, not kitschy.",
+  },
+  wedding: {
+    title: "Elegant wedding celebration table with champagne",
+    hint: "A refined wedding celebration: champagne flutes, delicate floral arrangement with alpine flowers, subtle gold accents. Festive yet tasteful.",
+  },
+  family: {
+    title: "Warm family gathering around a large wooden table",
+    hint: "A cozy family scene: a generously set large table, shared dishes, bread basket, warm lighting. Multiple place settings suggesting togetherness.",
+  },
+  business: {
+    title: "Professional business dinner setting in alpine restaurant",
+    hint: "A polished business setting: crisp napkins, mineral water, a notepad beside the plate. Professional yet inviting, the hangar architecture visible.",
+  },
+  none: {
+    title: "Welcome scene at the Dakota Air Lounge hangar restaurant",
+    hint: "The Dakota atmosphere: warm hangar interior, a beautifully set table awaiting guests, soft light falling through large windows onto alpine wood.",
+  },
+}
+
 /**
  * POST /api/tischkarten/[id]/generate-illustration
  *
- * Body: multipart/form-data
- *   - file?      (optional) source photo — if provided, does image-to-image
- *   - hint?      (optional) extra style hint from the modal (overrides custom_hint)
- *
- * Reuses the existing generateStoryIllustration() with category "house" —
- * the closest fit for "warm welcome scene at a Dakota table".
- *
- * Flow:
- *   1. Load tischkarte for context (title, hint, etc.)
- *   2. Call AI Gateway (GPT Image 1.5) to generate illustration
- *   3. Upload PNG to story-illustrations bucket (reused — no new bucket needed)
- *   4. Update tischkarten.illustration_url
- *   5. Return { url, mode }
+ * Generates an occasion-specific KI illustration for a Tischkarte.
+ * Each occasion (birthday, wedding, business, etc.) gets a distinct
+ * visual scene — no more generic "house" images for everything.
  */
 export async function POST(
   request: NextRequest,
@@ -63,26 +85,24 @@ export async function POST(
       sourcePhotoMediaType = file.type || "image/jpeg"
     }
 
-    // 3. Build a context-rich prompt — combine the guest, the occasion,
-    //    and any user-supplied hints into one string for the illustration.
+    // 3. Build occasion-specific prompt
+    const occasion = (tischkarte.occasion as TischkartenOccasion) || "none"
+    const scene = OCCASION_SCENE[occasion]
+
     const combinedHint = [
+      scene.hint,
       tischkarte.custom_hint,
       modalHint,
-      tischkarte.occasion && tischkarte.occasion !== "none"
-        ? `occasion: ${tischkarte.occasion}`
-        : null,
     ]
       .filter(Boolean)
       .join(" — ")
 
     const result = await generateStoryIllustration({
-      // "house" is the closest existing category — emphasises the welcome
-      // scene / interior / atmosphere over a single dish.
       category: "house",
-      title: `Welcome scene for ${tischkarte.guest_name}`,
+      title: scene.title,
       subtitle: tischkarte.subtitle,
       contextExcerpt: tischkarte.paragraph_1?.slice(0, 300) ?? null,
-      hint: combinedHint || null,
+      hint: combinedHint,
       sourcePhoto,
       sourcePhotoMediaType,
       storyId: tischkarte.id,

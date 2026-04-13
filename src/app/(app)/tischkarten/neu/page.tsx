@@ -58,7 +58,7 @@ export default function NeueTischkartePage() {
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="occasion">Anlass</Label>
                 <select
@@ -73,6 +73,20 @@ export default function NeueTischkartePage() {
                   <option value="wedding">Hochzeit</option>
                   <option value="family">Familienfeier</option>
                   <option value="business">Geschäftsessen</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="language">Sprache</Label>
+                <select
+                  id="language"
+                  name="language"
+                  defaultValue="de"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                >
+                  <option value="de">Deutsch</option>
+                  <option value="en">English</option>
+                  <option value="fr">Français</option>
+                  <option value="it">Italiano</option>
                 </select>
               </div>
               <div className="space-y-2">

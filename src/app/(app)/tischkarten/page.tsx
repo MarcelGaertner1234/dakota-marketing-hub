@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Utensils, Eye, Calendar, Users } from "lucide-react"
 import Link from "next/link"
 import { listTischkarten } from "@/lib/actions/tischkarten"
-import type { Tischkarte, TischkartenOccasion } from "@/types/database"
+import type { Tischkarte, TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
 const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
   birthday: "Geburtstag",
@@ -79,18 +79,25 @@ export default async function TischkartenPage() {
                     <div className="font-semibold text-[#2C2C2C] dark:text-gray-100">
                       {tk.guest_name}
                     </div>
-                    {tk.occasion && tk.occasion !== "none" && (
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px]"
-                        style={{
-                          backgroundColor: "#C5A57215",
-                          color: "#9A8050",
-                        }}
-                      >
-                        {OCCASION_LABELS[tk.occasion]}
-                      </Badge>
-                    )}
+                    <div className="flex gap-1">
+                      {tk.occasion && tk.occasion !== "none" && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px]"
+                          style={{
+                            backgroundColor: "#C5A57215",
+                            color: "#9A8050",
+                          }}
+                        >
+                          {OCCASION_LABELS[tk.occasion]}
+                        </Badge>
+                      )}
+                      {tk.language && tk.language !== "de" && (
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          {tk.language.toUpperCase()}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <h3 className="font-serif text-base leading-tight italic text-gray-700 dark:text-gray-300 line-clamp-2">
