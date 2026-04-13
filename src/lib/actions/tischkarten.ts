@@ -1,5 +1,8 @@
 "use server"
 
+// Text (~2s) + Illustration (~20s) generation needs extended timeout on Vercel
+export const maxDuration = 120
+
 import { createServerClient } from "@/lib/supabase/server"
 import {
   generateTischkarteText,
