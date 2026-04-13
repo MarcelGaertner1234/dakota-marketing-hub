@@ -1,7 +1,6 @@
 import { getStory } from "@/lib/actions/stories"
 import { notFound } from "next/navigation"
 import { StoryA5Card } from "@/components/stories/story-a5-card"
-import Link from "next/link"
 import type { Story } from "@/types/database"
 
 export const dynamic = "force-dynamic"
@@ -42,29 +41,21 @@ export default async function PublicStoryPage({
           style={{
             fontSize: "14px",
             color: "#5E5346",
-            marginBottom: "12px",
+            marginBottom: "8px",
           }}
         >
           Hat dir unsere Geschichte gefallen?
         </p>
-        <Link href="/">
-          <button
-            style={{
-              background: "#C5A572",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "12px 24px",
-              fontSize: "14px",
-              fontWeight: 500,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              letterSpacing: "0.02em",
-            }}
-          >
-            Mehr über das Dakota erfahren
-          </button>
-        </Link>
+        <p
+          style={{
+            fontSize: "13px",
+            color: "#9A8050",
+            fontWeight: 500,
+            letterSpacing: "0.02em",
+          }}
+        >
+          Dakota Air Lounge — Basel
+        </p>
       </div>
     </div>
   )

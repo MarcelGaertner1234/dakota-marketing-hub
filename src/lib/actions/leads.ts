@@ -2,6 +2,7 @@
 
 import { createServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 export async function getLeads() {
   const supabase = createServerClient()
@@ -36,7 +37,7 @@ export async function createLead(formData: FormData): Promise<{ success: true } 
     .filter(Boolean) || []
 
   try {
-    const { error } = await supabase.from("leads").insert({
+    const { data: newLead, error } = await supabase.from("leads").insert({
       name: formData.get("name") as string,
       company: (formData.get("company") as string) || null,
       lead_type: (formData.get("lead_type") as string) || "privatperson",
@@ -52,13 +53,36 @@ export async function createLead(formData: FormData): Promise<{ success: true } 
       temperature: (formData.get("temperature") as string) || "kalt",
       next_action: (formData.get("next_action") as string) || null,
       next_action_date: (formData.get("next_action_date") as string) || null,
-    })
+    }).select("id").single()
     if (error) return { success: false, error: error.message }
+
+    // Create initial round for the new lead
+    if (newLead) {
+      await supabase.from("lead_rounds").insert({
+        lead_id: newLead.id,
+        round_number: 1,
+        reason: "Ersterfassung",
+      })
+    }
+
     revalidatePath("/leads")
     return { success: true }
   } catch {
     return { success: false, error: "Unbekannter Fehler beim Speichern" }
   }
+}
+
+export async function deleteLead(leadId: string) {
+  const supabase = createServerClient()
+  // Delete related records first (in case no CASCADE)
+  await supabase.from("lead_activities").delete().eq("lead_id", leadId)
+  await supabase.from("lead_events").delete().eq("lead_id", leadId)
+  await supabase.from("lead_rounds").delete().eq("lead_id", leadId)
+  // Delete the lead itself
+  const { error } = await supabase.from("leads").delete().eq("id", leadId)
+  if (error) throw error
+  revalidatePath("/leads")
+  redirect("/leads")
 }
 
 export async function updateLead(

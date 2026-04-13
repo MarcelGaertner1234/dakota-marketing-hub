@@ -116,11 +116,12 @@ function generateRecurrenceDates(
   const start = new Date(startDate + "T00:00:00")
   const end = new Date(endDate + "T00:00:00")
   const MAX_OCCURRENCES = 52
+  const originalDay = start.getDate()
 
   let current = new Date(start)
 
   for (let i = 0; i < MAX_OCCURRENCES; i++) {
-    current = nextOccurrence(current, recurrence)
+    current = nextOccurrence(current, recurrence, originalDay)
     if (current > end) break
     dates.push(formatDate(current))
   }
@@ -128,7 +129,7 @@ function generateRecurrenceDates(
   return dates
 }
 
-function nextOccurrence(date: Date, recurrence: string): Date {
+function nextOccurrence(date: Date, recurrence: string, originalDay?: number): Date {
   const next = new Date(date)
   switch (recurrence) {
     case "daily":
@@ -140,9 +141,15 @@ function nextOccurrence(date: Date, recurrence: string): Date {
     case "biweekly":
       next.setDate(next.getDate() + 14)
       break
-    case "monthly":
-      next.setMonth(next.getMonth() + 1)
+    case "monthly": {
+      const targetMonth = next.getMonth() + 1
+      // Set day to 1 first to avoid overflow, then set month, then clamp day
+      next.setDate(1)
+      next.setMonth(targetMonth)
+      const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()
+      next.setDate(Math.min(originalDay || date.getDate(), lastDay))
       break
+    }
     case "yearly":
       next.setFullYear(next.getFullYear() + 1)
       break
@@ -169,31 +176,106 @@ export async function updateEvent(id: string, formData: FormData) {
   const recurrence = (formData.get("recurrence") as string) || "none"
   const recurrenceEndDate = (formData.get("recurrence_end_date") as string) || null
 
+  // Fetch current event to detect recurrence changes
+  const { data: existing } = await supabase
+    .from("events")
+    .select("recurrence, recurrence_end_date, start_date, end_date")
+    .eq("id", id)
+    .single()
+
+  const updatedFields = {
+    title: formData.get("title") as string,
+    description: (formData.get("description") as string) || null,
+    event_type: (formData.get("event_type") as string) || "own_event",
+    start_date: formData.get("start_date") as string,
+    end_date: (formData.get("end_date") as string) || null,
+    start_time: (formData.get("start_time") as string) || null,
+    end_time: (formData.get("end_time") as string) || null,
+    location: (formData.get("location") as string) || "Dakota Air Lounge",
+    concept_id: (formData.get("concept_id") as string) || null,
+    lead_time_days: Number(formData.get("lead_time_days")) || 28,
+    recurrence,
+    recurrence_end_date: recurrence !== "none" ? recurrenceEndDate : null,
+    updated_at: new Date().toISOString(),
+  }
+
   const { error } = await supabase
     .from("events")
-    .update({
-      title: formData.get("title") as string,
-      description: (formData.get("description") as string) || null,
-      event_type: (formData.get("event_type") as string) || "own_event",
-      start_date: formData.get("start_date") as string,
-      end_date: (formData.get("end_date") as string) || null,
-      start_time: (formData.get("start_time") as string) || null,
-      end_time: (formData.get("end_time") as string) || null,
-      location: (formData.get("location") as string) || "Dakota Air Lounge",
-      concept_id: (formData.get("concept_id") as string) || null,
-      lead_time_days: Number(formData.get("lead_time_days")) || 28,
-      recurrence,
-      recurrence_end_date: recurrence !== "none" ? recurrenceEndDate : null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatedFields)
     .eq("id", id)
   if (error) throw error
+
+  // Regenerate child events if recurrence changed
+  const recurrenceChanged =
+    existing &&
+    (existing.recurrence !== recurrence ||
+      existing.recurrence_end_date !== (recurrence !== "none" ? recurrenceEndDate : null))
+
+  if (recurrenceChanged) {
+    // Delete existing child events
+    const { error: deleteChildError } = await supabase
+      .from("events")
+      .delete()
+      .eq("parent_event_id", id)
+    if (deleteChildError) throw deleteChildError
+
+    // Regenerate if new recurrence is not "none"
+    if (recurrence !== "none" && recurrenceEndDate) {
+      const childDates = generateRecurrenceDates(
+        updatedFields.start_date,
+        recurrence,
+        recurrenceEndDate
+      )
+
+      let endDateOffsetDays = 0
+      if (updatedFields.end_date) {
+        const startMs = new Date(updatedFields.start_date).getTime()
+        const endMs = new Date(updatedFields.end_date).getTime()
+        endDateOffsetDays = Math.round((endMs - startMs) / (1000 * 60 * 60 * 24))
+      }
+
+      if (childDates.length > 0) {
+        const children = childDates.map((date) => {
+          const childEndDate = endDateOffsetDays > 0
+            ? offsetDate(date, endDateOffsetDays)
+            : null
+          return {
+            title: updatedFields.title,
+            description: updatedFields.description,
+            event_type: updatedFields.event_type,
+            start_date: date,
+            end_date: childEndDate,
+            start_time: updatedFields.start_time,
+            end_time: updatedFields.end_time,
+            location: updatedFields.location,
+            concept_id: updatedFields.concept_id,
+            lead_time_days: updatedFields.lead_time_days,
+            recurrence: "none" as const,
+            parent_event_id: id,
+          }
+        })
+
+        const { error: childError } = await supabase.from("events").insert(children)
+        if (childError) throw childError
+      }
+    }
+  }
+
   revalidatePath("/kalender")
   revalidatePath(`/kalender/${id}`)
 }
 
 export async function deleteEvent(id: string) {
   const supabase = createServerClient()
+
+  // Clean up Storage images before deleting the event
+  const folderPath = `event-${id}`
+  const { data: files } = await supabase.storage.from("event-images").list(folderPath)
+  if (files && files.length > 0) {
+    const filePaths = files.map((f) => `${folderPath}/${f.name}`)
+    await supabase.storage.from("event-images").remove(filePaths)
+  }
+
   const { error } = await supabase.from("events").delete().eq("id", id)
   if (error) throw error
   revalidatePath("/kalender")

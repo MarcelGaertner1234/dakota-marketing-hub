@@ -1,21 +1,31 @@
+"use client"
+
+import { useState, useTransition } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createLead } from "@/lib/actions/leads"
-import { ArrowLeft, User, Flame, Zap, BookOpen } from "lucide-react"
+import { ArrowLeft, User, Flame, Zap, BookOpen, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 export default function NeuerLeadPage() {
-  async function handleCreate(formData: FormData) {
-    "use server"
-    const result = await createLead(formData)
-    if (!result.success) {
-      return // stay on form instead of crashing
-    }
-    redirect("/leads")
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function handleCreate(formData: FormData) {
+    setError(null)
+    startTransition(async () => {
+      const result = await createLead(formData)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      router.push("/leads")
+    })
   }
 
   return (
@@ -31,6 +41,12 @@ export default function NeuerLeadPage() {
           <p className="text-gray-500 dark:text-gray-400">Kontakt erfassen und nachverfolgen</p>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          <strong>Fehler:</strong> {error}
+        </div>
+      )}
 
       <form action={handleCreate} className="space-y-6">
         {/* Basis-Infos */}
@@ -145,9 +161,9 @@ export default function NeuerLeadPage() {
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                   defaultValue="kalt"
                 >
-                  <option value="kalt">Kalt — noch kein Kontakt</option>
-                  <option value="warm">Warm — Interesse vorhanden</option>
-                  <option value="heiss">Heiss — kurz vor Abschluss</option>
+                  <option value="kalt">Kalt -- noch kein Kontakt</option>
+                  <option value="warm">Warm -- Interesse vorhanden</option>
+                  <option value="heiss">Heiss -- kurz vor Abschluss</option>
                 </select>
               </div>
             </div>
@@ -189,8 +205,15 @@ export default function NeuerLeadPage() {
           <Link href="/leads">
             <Button variant="outline">Abbrechen</Button>
           </Link>
-          <Button type="submit" className="bg-[#C5A572] hover:bg-[#A08050]">
-            Lead speichern
+          <Button type="submit" disabled={isPending} className="bg-[#C5A572] hover:bg-[#A08050]">
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Speichert...
+              </>
+            ) : (
+              "Lead speichern"
+            )}
           </Button>
         </div>
       </form>

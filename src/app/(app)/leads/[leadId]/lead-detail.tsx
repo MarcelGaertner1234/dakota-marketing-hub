@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea as DialogTextarea } from "@/components/ui/textarea"
 import Link from "next/link"
-import { updateLead, linkLeadToEvent, unlinkLeadFromEvent, startNewRound } from "@/lib/actions/leads"
+import { updateLead, deleteLead, linkLeadToEvent, unlinkLeadFromEvent, startNewRound } from "@/lib/actions/leads"
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_TEMPERATURE_LABELS, LEAD_TEMPERATURE_COLORS, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants"
 import type { LeadStatus, LeadType, LeadTemperature, EventType } from "@/types/database"
 import { LeadStatusSelect } from "./lead-status-select"
@@ -153,6 +153,7 @@ export function LeadDetail({
   const [newRoundReason, setNewRoundReason] = useState("")
   const [newRoundMember, setNewRoundMember] = useState("")
   const [roundPending, startRoundTransition] = useTransition()
+  const [deletePending, startDeleteTransition] = useTransition()
 
   const status = lead.status as LeadStatus
 
@@ -270,6 +271,21 @@ export function LeadDetail({
                 <Pencil className="mr-2 h-4 w-4" /> Bearbeiten
               </>
             )}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={deletePending}
+            className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+            onClick={() => {
+              if (window.confirm("Lead wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.")) {
+                startDeleteTransition(async () => {
+                  await deleteLead(lead.id)
+                })
+              }
+            }}
+          >
+            {deletePending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </Button>
         </div>
       </div>
