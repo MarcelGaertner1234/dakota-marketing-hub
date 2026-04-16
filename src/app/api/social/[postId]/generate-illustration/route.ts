@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateStoryIllustration } from "@/lib/ai/generate-illustration"
+import { rateLimit } from "@/lib/rate-limit"
 import type { StoryCategory } from "@/types/database"
 
 // Image generation takes 10-30 seconds — extend the timeout generously.
@@ -65,6 +66,9 @@ export async function POST(
   request: NextRequest,
   ctx: { params: Promise<{ postId: string }> }
 ) {
+  const rl = rateLimit(request, { scope: "ai-image", max: 10, windowMs: 60_000 })
+  if (rl) return rl
+
   try {
     const { postId } = await ctx.params
     const formData = await request.formData()

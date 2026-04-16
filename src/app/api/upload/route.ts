@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { secureFileSuffix } from "@/lib/crypto-id"
+
+const ALLOWED_BUCKETS = new Set([
+  "concept-images",
+  "event-images",
+  "social-images",
+  "story-illustrations",
+])
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
   const file = formData.get("file") as File | null
-  const bucket = (formData.get("bucket") as string) || "concept-images"
+  const rawBucket = (formData.get("bucket") as string) || "concept-images"
+  const bucket = ALLOWED_BUCKETS.has(rawBucket) ? rawBucket : null
   const folder = (formData.get("folder") as string) || ""
 
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 })
+  }
+
+  if (!bucket) {
+    return NextResponse.json({ error: "Invalid bucket" }, { status: 400 })
+  }
+
+  // folder is used in the storage path — reject traversal attempts
+  if (folder.includes("..") || folder.startsWith("/")) {
+    return NextResponse.json({ error: "Invalid folder" }, { status: 400 })
   }
 
   const supabase = createClient(
@@ -16,8 +34,8 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const ext = file.name.split(".").pop() || "jpg"
-  const fileName = `${folder ? folder + "/" : ""}${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`
+  const ext = (file.name.split(".").pop() || "jpg").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) || "jpg"
+  const fileName = `${folder ? folder + "/" : ""}${Date.now()}-${secureFileSuffix()}.${ext}`
 
   const arrayBuffer = await file.arrayBuffer()
   const buffer = new Uint8Array(arrayBuffer)

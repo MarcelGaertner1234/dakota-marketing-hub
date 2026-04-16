@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Download, Copy, RefreshCw, Printer, Plus, Check, Loader2 } from "lucide-react"
 import QRCode from "qrcode"
 import { BRAND_ASSETS, BRAND_COLORS, GOOGLE_REVIEW_URL } from "@/lib/brand"
+import { secureReviewToken } from "@/lib/crypto-id"
 
 const PRODUCTION_URL = "https://dakota-marketing-hub.vercel.app"
 const FONT_IMPORT_URL = "https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700&family=Calistoga&display=swap"
@@ -126,7 +127,7 @@ export default function QRGeneratorPage() {
 
   useEffect(() => {
     if (tokens.length === 0) {
-      setTokens([Math.random().toString(36).substring(2, 10)])
+      setTokens([secureReviewToken()])
     }
   }, [tokens.length])
 
@@ -146,12 +147,12 @@ export default function QRGeneratorPage() {
   }, [tokens, baseUrl, hotelLogoUrl])
 
   function addToken() {
-    setTokens([...tokens, Math.random().toString(36).substring(2, 10)])
+    setTokens([...tokens, secureReviewToken()])
   }
 
   function regenerateToken(index: number) {
     const newTokens = [...tokens]
-    newTokens[index] = Math.random().toString(36).substring(2, 10)
+    newTokens[index] = secureReviewToken()
     setTokens(newTokens)
   }
 

@@ -2,6 +2,7 @@
 
 import { createServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { secureGoodyCode } from "@/lib/crypto-id"
 
 export async function getReviews() {
   const supabase = createServerClient()
@@ -89,7 +90,7 @@ export async function createReview(data: {
   guest_email?: string
 }) {
   const supabase = createServerClient()
-  const goodyCode = `DAKOTA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+  const goodyCode = secureGoodyCode()
   const { error } = await supabase.from("reviews").insert({
     ...data,
     goody_code: goodyCode,

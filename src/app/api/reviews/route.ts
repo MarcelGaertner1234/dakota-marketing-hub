@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { secureGoodyCode } from "@/lib/crypto-id"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(request, { scope: "reviews", max: 5, windowMs: 60_000 })
+  if (rl) return rl
+
   const body = await request.json()
   const { token, comment, guest_name } = body
 
-  // Fix 3: Coerce ratings to integers
   const food_rating = parseInt(body.food_rating, 10)
   const ambience_rating = parseInt(body.ambience_rating, 10)
   const service_rating = parseInt(body.service_rating, 10)
 
-  if (!token || !food_rating || !ambience_rating || !service_rating) {
+  if (!token || typeof token !== "string" || token.length < 6 || token.length > 64) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 400 })
+  }
+
+  if (!food_rating || !ambience_rating || !service_rating) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
   }
 
-  // Fix 1: Validate ratings are integers between 1-5
   const ratings = { food_rating, ambience_rating, service_rating }
   for (const [key, value] of Object.entries(ratings)) {
     if (!Number.isInteger(value) || value < 1 || value > 5) {
@@ -30,23 +37,22 @@ export async function POST(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Fix 2: Check if a review with the same base token already exists
+  // Existing composite-token rows (legacy) start with `${token}-…`.
+  // New rows use the original token directly → UNIQUE constraint handles races.
   const { data: existing } = await supabase
     .from("reviews")
     .select("id")
-    .like("token", `${token}%`)
+    .or(`token.eq.${token},token.like.${token}-%`)
     .limit(1)
 
   if (existing && existing.length > 0) {
     return NextResponse.json({ error: "Already reviewed" }, { status: 429 })
   }
 
-  const goodyCode = `DAKOTA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-
-  const goodyToken = `${token}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+  const goodyCode = secureGoodyCode()
 
   const { error } = await supabase.from("reviews").insert({
-    token: goodyToken,
+    token,
     food_rating,
     ambience_rating,
     service_rating,
@@ -56,6 +62,10 @@ export async function POST(request: NextRequest) {
   })
 
   if (error) {
+    // 23505 = unique_violation → race condition where a concurrent request won
+    if (error.code === "23505") {
+      return NextResponse.json({ error: "Already reviewed" }, { status: 429 })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

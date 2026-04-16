@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateSocialCaption } from "@/lib/ai/generate-social-caption"
+import { rateLimit } from "@/lib/rate-limit"
 import type { PlatformType } from "@/types/database"
 
 // Text generation is fast (~2s) but allow some headroom.
@@ -28,6 +29,9 @@ export async function POST(
   request: NextRequest,
   ctx: { params: Promise<{ postId: string }> }
 ) {
+  const rl = rateLimit(request, { scope: "ai-text", max: 20, windowMs: 60_000 })
+  if (rl) return rl
+
   try {
     const { postId } = await ctx.params
     const formData = await request.formData()

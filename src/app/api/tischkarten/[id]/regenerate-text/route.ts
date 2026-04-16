@@ -6,6 +6,7 @@ import {
   FOOTER_SIGNATURES,
   DATE_LOCALES,
 } from "@/lib/ai/generate-tischkarte-text"
+import { rateLimit } from "@/lib/rate-limit"
 import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
 export const maxDuration = 60
@@ -60,9 +61,12 @@ function buildSubtitle(input: {
  * Respects the stored language setting.
  */
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
+  const rl = rateLimit(request, { scope: "ai-text", max: 20, windowMs: 60_000 })
+  if (rl) return rl
+
   try {
     const { id } = await ctx.params
 
