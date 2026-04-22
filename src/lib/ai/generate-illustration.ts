@@ -59,16 +59,16 @@ const CATEGORY_HINTS: Record<StoryCategory, string> = {
     "Render the landscape or place element with atmospheric minimalism. Lines suggest depth without filling areas. Very light watercolor hints only.",
 }
 
-// Default model — GPT Image 2 via AI Gateway.
-// OpenAI's latest image model with stronger instruction following and prompt
-// adherence than gpt-image-1.5 — crucial for the Chesa Rosatsch style.
-// Change this single string to swap providers without touching the rest.
+// Default model — GPT Image 1.5 via AI Gateway.
+// Rolled back from gpt-image-2 on 22.04.2026: gpt-image-2 hit Vercel's
+// gateway timeout (504) on Stories-Generation (z.B. story f7140f26 "Die Crew").
+// 1.5 generiert deutlich schneller (10-30s) und hält sich innerhalb maxDuration=120.
 //
 // Alternatives:
-//   - "openai/gpt-image-1.5"            (previous generation)
+//   - "openai/gpt-image-2"              (higher quality, too slow → 504)
 //   - "openai/gpt-image-1-mini"         (cheaper, faster)
 //   - "google/gemini-3.1-flash-image-preview"  (fast, cheap, preview status)
-const IMAGE_MODEL = "openai/gpt-image-2"
+const IMAGE_MODEL = "openai/gpt-image-1.5"
 
 // ──────────────────────────────────────────────────────────────
 // TYPES
