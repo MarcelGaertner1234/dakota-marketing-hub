@@ -134,7 +134,7 @@ export async function POST(
     ].filter(Boolean) as string[]
     const combinedHint = hintParts.length > 0 ? hintParts.join(" — ") : null
 
-    // 5. Generate via AI Gateway (size param flows through to gpt-image-1.5)
+    // 5. Generate via AI Gateway (size param flows through to gpt-image-2)
     const result = await generateStoryIllustration({
       category,
       title: post.title || "Dakota Social Post",

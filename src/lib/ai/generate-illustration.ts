@@ -59,15 +59,16 @@ const CATEGORY_HINTS: Record<StoryCategory, string> = {
     "Render the landscape or place element with atmospheric minimalism. Lines suggest depth without filling areas. Very light watercolor hints only.",
 }
 
-// Default model — GPT Image 1.5 via AI Gateway.
-// OpenAI's 2026 state-of-the-art image model with excellent instruction
-// following and prompt adherence — crucial for the Chesa Rosatsch style.
+// Default model — GPT Image 2 via AI Gateway.
+// OpenAI's latest image model with stronger instruction following and prompt
+// adherence than gpt-image-1.5 — crucial for the Chesa Rosatsch style.
 // Change this single string to swap providers without touching the rest.
 //
 // Alternatives:
-//   - "openai/gpt-image-1"              (older, cheaper)
+//   - "openai/gpt-image-1.5"            (previous generation)
+//   - "openai/gpt-image-1-mini"         (cheaper, faster)
 //   - "google/gemini-3.1-flash-image-preview"  (fast, cheap, preview status)
-const IMAGE_MODEL = "openai/gpt-image-1.5"
+const IMAGE_MODEL = "openai/gpt-image-2"
 
 // ──────────────────────────────────────────────────────────────
 // TYPES
@@ -133,7 +134,7 @@ export async function generateStoryIllustration(
   const hasPhoto = !!input.sourcePhoto && input.sourcePhoto.length > 0
   const mode: "edit" | "text" = hasPhoto ? "edit" : "text"
 
-  // GPT Image 1.5 is an image-only model — use experimental_generateImage,
+  // GPT Image 2 is an image-only model — use experimental_generateImage,
   // not generateText. For image-edit mode, pass a prompt object with
   // { text, images }. For text-only mode, pass a plain string prompt.
   const result = await generateImage({

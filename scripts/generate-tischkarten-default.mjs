@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * One-time script: generates the default Tischkarten welcome illustration
- * via Vercel AI Gateway (OpenAI gpt-image-1.5) and writes it to
+ * via Vercel AI Gateway (OpenAI gpt-image-2) and writes it to
  * public/branding/tischkarten-default.png
  *
  * Usage:
@@ -80,7 +80,7 @@ COMPOSITION:
 
 console.log("[generate-tischkarten-default] Output:", OUTPUT_PATH)
 console.log(
-  "[generate-tischkarten-default] Calling AI Gateway → openai/gpt-image-1.5 ..."
+  "[generate-tischkarten-default] Calling AI Gateway → openai/gpt-image-2 ..."
 )
 console.log(
   "[generate-tischkarten-default] (~15-30s, ~$0.20)"
@@ -91,7 +91,7 @@ if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
 const start = Date.now()
 const result = await generateImage({
-  model: "openai/gpt-image-1.5",
+  model: "openai/gpt-image-2",
   prompt: PROMPT,
   size: "1536x1024",
   providerOptions: {
