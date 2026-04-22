@@ -5,7 +5,11 @@ import { secureGoodyCode } from "@/lib/crypto-id"
 import { rateLimit } from "@/lib/rate-limit"
 
 const reviewSchema = z.object({
-  token: z.string().min(6).max(64),
+  token: z
+    .string()
+    .min(6)
+    .max(64)
+    .regex(/^[a-zA-Z0-9_-]+$/, "Ungültiges Token-Format"),
   food_rating: z.coerce.number().int().min(1).max(5),
   ambience_rating: z.coerce.number().int().min(1).max(5),
   service_rating: z.coerce.number().int().min(1).max(5),

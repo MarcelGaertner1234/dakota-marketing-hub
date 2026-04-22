@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { rateLimit } from "@/lib/rate-limit"
+
+const ALLOWED_BUCKETS = new Set([
+  "concept-images",
+  "event-images",
+  "social-images",
+  "story-illustrations",
+])
 
 function getSupabase() {
   return createClient(
@@ -8,10 +16,31 @@ function getSupabase() {
   )
 }
 
+function isSafePath(value: string): boolean {
+  if (value.includes("..") || value.startsWith("/")) return false
+  try {
+    if (decodeURIComponent(value).includes("..")) return false
+  } catch {
+    return false
+  }
+  return true
+}
+
 // GET: List files in a bucket/folder
 export async function GET(request: NextRequest) {
+  const rl = rateLimit(request, { scope: "storage-list", max: 60, windowMs: 60_000 })
+  if (rl) return rl
+
   const bucket = request.nextUrl.searchParams.get("bucket") || "concept-images"
   const folder = request.nextUrl.searchParams.get("folder") || ""
+
+  if (!ALLOWED_BUCKETS.has(bucket)) {
+    return NextResponse.json({ error: "Invalid bucket" }, { status: 400 })
+  }
+
+  if (folder && !isSafePath(folder)) {
+    return NextResponse.json({ error: "Invalid folder" }, { status: 400 })
+  }
 
   const supabase = getSupabase()
   const { data, error } = await supabase.storage
@@ -41,11 +70,28 @@ export async function GET(request: NextRequest) {
 
 // DELETE: Remove a file from storage
 export async function DELETE(request: NextRequest) {
-  const body = await request.json()
+  const rl = rateLimit(request, { scope: "storage-delete", max: 30, windowMs: 60_000 })
+  if (rl) return rl
+
+  let body: { bucket?: string; path?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+  }
+
   const { bucket, path } = body
 
   if (!bucket || !path) {
     return NextResponse.json({ error: "Missing bucket or path" }, { status: 400 })
+  }
+
+  if (!ALLOWED_BUCKETS.has(bucket)) {
+    return NextResponse.json({ error: "Invalid bucket" }, { status: 400 })
+  }
+
+  if (!isSafePath(path)) {
+    return NextResponse.json({ error: "Invalid path" }, { status: 400 })
   }
 
   const supabase = getSupabase()

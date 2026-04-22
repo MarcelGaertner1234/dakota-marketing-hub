@@ -9,6 +9,15 @@ const ALLOWED_BUCKETS = new Set([
   "story-illustrations",
 ])
 
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+])
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024 // 10 MB
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
   const file = formData.get("file") as File | null
@@ -27,6 +36,21 @@ export async function POST(request: NextRequest) {
   // folder is used in the storage path — reject traversal attempts
   if (folder.includes("..") || folder.startsWith("/")) {
     return NextResponse.json({ error: "Invalid folder" }, { status: 400 })
+  }
+  try {
+    if (folder && decodeURIComponent(folder).includes("..")) {
+      return NextResponse.json({ error: "Invalid folder" }, { status: 400 })
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid folder" }, { status: 400 })
+  }
+
+  if (!ALLOWED_MIME_TYPES.has(file.type)) {
+    return NextResponse.json({ error: "Unsupported file type" }, { status: 415 })
+  }
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: "File too large" }, { status: 413 })
   }
 
   const supabase = createClient(

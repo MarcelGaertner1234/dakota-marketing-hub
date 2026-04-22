@@ -170,12 +170,18 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           <OverdueLeads
-            leads={(overdueRes.data ?? []).map((lead) => ({
-              ...lead,
-              next_action: lead.next_action!,
-              next_action_date: lead.next_action_date!,
-              days_overdue: Math.floor((new Date(new Date().toISOString().split('T')[0] + "T00:00:00Z").getTime() - new Date(lead.next_action_date + "T00:00:00Z").getTime()) / 86400000),
-            }))}
+            leads={(overdueRes.data ?? [])
+              .filter((lead) => lead.next_action && lead.next_action_date)
+              .map((lead) => {
+                const todayUtc = new Date(new Date().toISOString().split("T")[0] + "T00:00:00Z").getTime()
+                const dueUtc = new Date(lead.next_action_date + "T00:00:00Z").getTime()
+                return {
+                  ...lead,
+                  next_action: lead.next_action!,
+                  next_action_date: lead.next_action_date!,
+                  days_overdue: Math.floor((todayUtc - dueUtc) / 86400000),
+                }
+              })}
           />
         </CardContent>
       </Card>

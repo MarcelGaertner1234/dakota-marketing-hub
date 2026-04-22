@@ -37,12 +37,29 @@ export async function createEvent(formData: FormData) {
 
   const recurrence = (formData.get("recurrence") as string) || "none"
   const recurrenceEndDate = (formData.get("recurrence_end_date") as string) || null
+  const startDate = formData.get("start_date") as string
+
+  const title = (formData.get("title") as string)?.trim()
+  if (!title) {
+    throw new Error("Titel ist erforderlich")
+  }
+  if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    throw new Error("Startdatum ist erforderlich (YYYY-MM-DD)")
+  }
+  if (recurrence !== "none" && recurrenceEndDate) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(recurrenceEndDate)) {
+      throw new Error("Enddatum der Serie ungültig")
+    }
+    if (recurrenceEndDate <= startDate) {
+      throw new Error("Serien-Enddatum muss nach dem Startdatum liegen")
+    }
+  }
 
   const baseEvent = {
-    title: formData.get("title") as string,
+    title,
     description: (formData.get("description") as string) || null,
     event_type: (formData.get("event_type") as string) || "own_event",
-    start_date: formData.get("start_date") as string,
+    start_date: startDate,
     end_date: (formData.get("end_date") as string) || null,
     start_time: (formData.get("start_time") as string) || null,
     end_time: (formData.get("end_time") as string) || null,
