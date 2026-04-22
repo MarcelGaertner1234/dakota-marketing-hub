@@ -203,32 +203,43 @@ export async function createTischkarte(formData: FormData) {
 
   if (error) throw error
 
-  // 5. Auto-generate illustration based on occasion + hint
-  try {
-    const scene = OCCASION_SCENE[occasion]
-    const combinedHint = [scene.hint, customHint].filter(Boolean).join(" — ")
+  // 5. Illustration im Hintergrund generieren (after response).
+  // Warum: GPT Image + Claude Text zusammen hat den Vercel-Gateway-Timeout
+  // (60s) ueberschritten → 504 im Browser. Mit after() laeuft die Image-
+  // Generation nach der Response in der gleichen Function weiter (bis
+  // maxDuration=120). Der User bekommt die Karte sofort, das Bild kommt
+  // innerhalb der naechsten ~20-40s in die DB und erscheint beim naechsten
+  // Refresh der Detail-Seite.
+  const { after } = await import("next/server")
+  after(async () => {
+    try {
+      const scene = OCCASION_SCENE[occasion]
+      const combinedHint = [scene.hint, customHint].filter(Boolean).join(" — ")
 
-    const result = await generateStoryIllustration({
-      category: "house",
-      title: scene.title,
-      subtitle,
-      contextExcerpt: generated.paragraph_1.slice(0, 300),
-      hint: combinedHint,
-      storyId: data.id,
-    })
-
-    // Upload to Supabase Storage
-    const ext = result.mediaType === "image/jpeg" ? "jpg" : "png"
-    const fileName = `tischkarte/${data.id}/ai-${Date.now()}.${ext}`
-
-    const { error: uploadError } = await supabase.storage
-      .from("story-illustrations")
-      .upload(fileName, result.imageData, {
-        contentType: result.mediaType,
-        upsert: false,
+      const result = await generateStoryIllustration({
+        category: "house",
+        title: scene.title,
+        subtitle,
+        contextExcerpt: generated.paragraph_1.slice(0, 300),
+        hint: combinedHint,
+        storyId: data.id,
       })
 
-    if (!uploadError) {
+      const ext = result.mediaType === "image/jpeg" ? "jpg" : "png"
+      const fileName = `tischkarte/${data.id}/ai-${Date.now()}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from("story-illustrations")
+        .upload(fileName, result.imageData, {
+          contentType: result.mediaType,
+          upsert: false,
+        })
+
+      if (uploadError) {
+        console.error("Auto-illustration upload failed:", uploadError)
+        return
+      }
+
       const { data: urlData } = supabase.storage
         .from("story-illustrations")
         .getPublicUrl(fileName)
@@ -240,11 +251,10 @@ export async function createTischkarte(formData: FormData) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", data.id)
+    } catch (illustrationErr) {
+      console.error("Auto-illustration failed (non-fatal):", illustrationErr)
     }
-  } catch (illustrationErr) {
-    // Non-fatal: card is created, illustration just stays as default
-    console.error("Auto-illustration failed (non-fatal):", illustrationErr)
-  }
+  })
 
   revalidatePath("/tischkarten")
   return data
