@@ -54,7 +54,7 @@ export default async function PublicStoryPage({
             letterSpacing: "0.02em",
           }}
         >
-          Dakota Air Lounge — Basel
+          Dakota Air Lounge — Meiringen
         </p>
       </div>
     </div>

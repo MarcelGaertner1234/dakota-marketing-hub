@@ -268,12 +268,15 @@ export async function updateEvent(id: string, formData: FormData) {
 export async function deleteEvent(id: string) {
   const supabase = createServerClient()
 
-  // Clean up Storage images before deleting the event
-  const folderPath = `event-${id}`
-  const { data: files } = await supabase.storage.from("event-images").list(folderPath)
-  if (files && files.length > 0) {
-    const filePaths = files.map((f) => `${folderPath}/${f.name}`)
-    await supabase.storage.from("event-images").remove(filePaths)
+  // Historic folder prefix was `event-${id.substring(0,8)}`; now standard is full id.
+  // Clean both to avoid orphaned images after format change.
+  const folderCandidates = [`event-${id}`, `event-${id.substring(0, 8)}`]
+  for (const folderPath of folderCandidates) {
+    const { data: files } = await supabase.storage.from("event-images").list(folderPath)
+    if (files && files.length > 0) {
+      const filePaths = files.map((f) => `${folderPath}/${f.name}`)
+      await supabase.storage.from("event-images").remove(filePaths)
+    }
   }
 
   const { error } = await supabase.from("events").delete().eq("id", id)

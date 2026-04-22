@@ -1,36 +1,40 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { z } from "zod"
 import { secureGoodyCode } from "@/lib/crypto-id"
 import { rateLimit } from "@/lib/rate-limit"
+
+const reviewSchema = z.object({
+  token: z.string().min(6).max(64),
+  food_rating: z.coerce.number().int().min(1).max(5),
+  ambience_rating: z.coerce.number().int().min(1).max(5),
+  service_rating: z.coerce.number().int().min(1).max(5),
+  comment: z.string().max(2000).optional().nullable(),
+  guest_name: z.string().max(100).optional().nullable(),
+  guest_email: z.string().email().max(200).optional().nullable(),
+})
 
 export async function POST(request: NextRequest) {
   const rl = rateLimit(request, { scope: "reviews", max: 5, windowMs: 60_000 })
   if (rl) return rl
 
-  const body = await request.json()
-  const { token, comment, guest_name } = body
-
-  const food_rating = parseInt(body.food_rating, 10)
-  const ambience_rating = parseInt(body.ambience_rating, 10)
-  const service_rating = parseInt(body.service_rating, 10)
-
-  if (!token || typeof token !== "string" || token.length < 6 || token.length > 64) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 400 })
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  if (!food_rating || !ambience_rating || !service_rating) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+  const parsed = reviewSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid payload", issues: parsed.error.issues },
+      { status: 400 }
+    )
   }
 
-  const ratings = { food_rating, ambience_rating, service_rating }
-  for (const [key, value] of Object.entries(ratings)) {
-    if (!Number.isInteger(value) || value < 1 || value > 5) {
-      return NextResponse.json(
-        { error: `${key} must be an integer between 1 and 5` },
-        { status: 400 }
-      )
-    }
-  }
+  const { token, food_rating, ambience_rating, service_rating, comment, guest_name, guest_email } =
+    parsed.data
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,6 +62,7 @@ export async function POST(request: NextRequest) {
     service_rating,
     comment: comment || null,
     guest_name: guest_name || null,
+    guest_email: guest_email || null,
     goody_code: goodyCode,
   })
 

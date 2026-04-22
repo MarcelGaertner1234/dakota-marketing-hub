@@ -100,7 +100,7 @@ export function EventDetail({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const folder = `event-${event.id.substring(0, 8)}`
+  const folder = `event-${event.id}`
 
   const leadTimeDays = event.lead_time_days || 28
 
@@ -625,29 +625,46 @@ export function EventDetail({
       )}
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl max-w-sm mx-4">
-            <h3 className="text-lg font-bold text-[#2C2C2C] dark:text-gray-100">Event löschen?</h3>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              &quot;{event.title}&quot; wird unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isPending}>
-                Abbrechen
-              </Button>
-              <Button
-                className="bg-red-500 hover:bg-red-600 text-white"
-                onClick={handleDelete}
-                disabled={isPending}
-              >
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                Löschen
-              </Button>
+      {showDeleteConfirm && (() => {
+        const taskCount = event.tasks?.length ?? 0
+        const isRecurrenceParent = event.recurrence && event.recurrence !== "none"
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl max-w-sm mx-4">
+              <h3 className="text-lg font-bold text-[#2C2C2C] dark:text-gray-100">Event löschen?</h3>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                &quot;{event.title}&quot; wird unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+              </p>
+              {(taskCount > 0 || isRecurrenceParent) && (
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  <p className="font-semibold">Wird ebenfalls gelöscht:</p>
+                  <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                    {taskCount > 0 && (
+                      <li>{taskCount} verknüpfte Aufgabe{taskCount === 1 ? "" : "n"}</li>
+                    )}
+                    {isRecurrenceParent && (
+                      <li>alle wiederkehrenden Folge-Termine dieser Serie</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isPending}>
+                  Abbrechen
+                </Button>
+                <Button
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  onClick={handleDelete}
+                  disabled={isPending}
+                >
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                  Löschen
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

@@ -94,9 +94,14 @@ export default function NeuerLeadPage() {
                 <Input id="phone" name="phone" placeholder="+41 79 123 45 67" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tags">Tags (kommagetrennt)</Label>
-                <Input id="tags" name="tags" placeholder="brunch, firmenanlass, lokal" />
+                <Label htmlFor="address">Adresse</Label>
+                <Input id="address" name="address" placeholder="Strasse Nr, PLZ Ort" />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (kommagetrennt)</Label>
+              <Input id="tags" name="tags" placeholder="brunch, firmenanlass, lokal" />
             </div>
           </CardContent>
         </Card>

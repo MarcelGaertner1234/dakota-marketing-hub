@@ -36,6 +36,7 @@ import {
 import { useRouter } from "next/navigation"
 import type { Story, StoryCategory } from "@/types/database"
 import { IllustrationGeneratorModal } from "@/components/stories/illustration-generator-modal"
+import { compressImage } from "@/lib/utils/compress-image"
 
 const CATEGORY_LABELS: Record<StoryCategory, string> = {
   dish: "Gericht",
@@ -163,11 +164,12 @@ export function StoryDetail({ story }: { story: Story }) {
   async function handleIllustrationUpload(
     e: React.ChangeEvent<HTMLInputElement>
   ) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const rawFile = e.target.files?.[0]
+    if (!rawFile) return
 
     setIsUploading(true)
     try {
+      const file = await compressImage(rawFile).catch(() => rawFile)
       const formData = new FormData()
       formData.set("file", file)
       formData.set("bucket", "story-illustrations")

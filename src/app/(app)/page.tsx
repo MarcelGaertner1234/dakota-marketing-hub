@@ -71,7 +71,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-[#C5A572]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Events diesen Monat</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Events nächste 30 Tage</CardTitle>
             <Calendar className="h-4 w-4 text-[#C5A572]" />
           </CardHeader>
           <CardContent>
@@ -106,11 +106,18 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{reviewStats.total}</div>
-            {reviewStats.total > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Ø {(((reviewStats.food || 0) + (reviewStats.ambience || 0) + (reviewStats.service || 0)) / 3).toFixed(1)} / 5
-              </p>
-            )}
+            {reviewStats.total > 0 && (() => {
+              const axes = [reviewStats.food, reviewStats.ambience, reviewStats.service].filter(
+                (v): v is number => typeof v === "number" && v > 0
+              )
+              if (axes.length === 0) return null
+              const avg = axes.reduce((a, b) => a + b, 0) / axes.length
+              return (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Ø {avg.toFixed(1)} / 5
+                </p>
+              )
+            })()}
           </CardContent>
         </Card>
       </div>

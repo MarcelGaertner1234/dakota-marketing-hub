@@ -8,7 +8,7 @@ export function registerLeadTools(server: McpServer) {
     "list_leads",
     "List leads with optional filters. Supports fuzzy search on name/company.",
     {
-      status: z.string().optional().describe("Filter by status (e.g. new, contacted, qualified, won, lost)"),
+      status: z.enum(["neu", "kontaktiert", "interessiert", "gebucht", "nachfassen", "verloren"]).optional().describe("Filter by status: neu, kontaktiert, interessiert, gebucht, nachfassen, verloren"),
       lead_type: z.string().optional().describe("Filter by lead_type (e.g. privatperson, firma, verein)"),
       search: z.string().optional().describe("Fuzzy search on name and company"),
       limit: z.number().optional().describe("Max results (default 50)"),
@@ -179,6 +179,17 @@ export function registerLeadTools(server: McpServer) {
           throw new Error("No fields to update")
         }
 
+        // Load current status if a status change is requested so we can log it
+        let previousStatus: string | null = null
+        if (payload.status !== undefined) {
+          const { data: before } = await supabase
+            .from("leads")
+            .select("status")
+            .eq("id", id)
+            .single()
+          previousStatus = before?.status ?? null
+        }
+
         const { data, error } = await supabase
           .from("leads")
           .update(payload)
@@ -186,6 +197,16 @@ export function registerLeadTools(server: McpServer) {
           .select()
           .single()
         if (error) throw new Error(error.message)
+
+        // Automatic activity entry on status change — keeps contact history gap-free
+        // when the MCP is driven by an LLM agent rather than the UI.
+        if (previousStatus !== null && payload.status && payload.status !== previousStatus) {
+          await supabase.from("lead_activities").insert({
+            lead_id: id,
+            activity_type: "status_change",
+            description: `Status geändert: ${previousStatus} → ${payload.status} (via MCP)`,
+          })
+        }
 
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] }
       } catch (e: any) {

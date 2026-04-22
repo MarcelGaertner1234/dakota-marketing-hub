@@ -102,7 +102,7 @@ export function TaskList({
             <button
               type="button"
               onClick={() => setShowExtras(!showExtras)}
-              className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               {showExtras ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               {showExtras ? "Weniger Optionen" : "Mehr Optionen"}

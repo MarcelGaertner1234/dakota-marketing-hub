@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 import { updateLeadStatus, addLeadActivity } from "@/lib/actions/leads"
 import { LEAD_STATUS_LABELS } from "@/lib/constants"
 import type { LeadStatus } from "@/types/database"
@@ -22,12 +22,22 @@ export function LeadStatusSelect({
   currentStatus: LeadStatus
 }) {
   const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const [optimisticStatus, setOptimisticStatus] = useState<LeadStatus>(currentStatus)
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newStatus = e.target.value as LeadStatus
-    const oldStatus = currentStatus
+    const oldStatus = optimisticStatus
+    setOptimisticStatus(newStatus)
+    setError(null)
     startTransition(async () => {
-      await updateLeadStatus(leadId, newStatus)
+      try {
+        await updateLeadStatus(leadId, newStatus)
+      } catch (e) {
+        setOptimisticStatus(oldStatus)
+        setError(e instanceof Error ? e.message : "Status-Update fehlgeschlagen")
+        return
+      }
       try {
         const formData = new FormData()
         formData.set("lead_id", leadId)
@@ -38,7 +48,7 @@ export function LeadStatusSelect({
         )
         await addLeadActivity(formData)
       } catch {
-        // Activity log failed — status was already updated, no rollback
+        // Activity log is non-fatal — status already persisted
       }
     })
   }
@@ -46,7 +56,7 @@ export function LeadStatusSelect({
   return (
     <div className="space-y-2">
       <select
-        value={currentStatus}
+        value={optimisticStatus}
         onChange={handleChange}
         disabled={isPending}
         className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
@@ -59,6 +69,9 @@ export function LeadStatusSelect({
       </select>
       {isPending && (
         <p className="text-xs text-gray-400 dark:text-gray-500">Wird aktualisiert...</p>
+      )}
+      {error && (
+        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       )}
     </div>
   )

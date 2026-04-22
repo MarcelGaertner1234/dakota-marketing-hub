@@ -35,6 +35,7 @@ import { useRouter } from "next/navigation"
 import { PostStatusSelect } from "./post-status-select"
 import { SocialIllustrationModal } from "@/components/social/social-illustration-modal"
 import { SocialCaptionModal } from "@/components/social/social-caption-modal"
+import { compressImage } from "@/lib/utils/compress-image"
 
 interface PostData {
   id: string
@@ -132,8 +133,9 @@ export function PostDetail({ post }: { post: PostData }) {
     setIsUploading(true)
     try {
       for (const file of Array.from(files)) {
+        const prepared = await compressImage(file).catch(() => file)
         const fd = new FormData()
-        fd.set("file", file)
+        fd.set("file", prepared)
         fd.set("bucket", "social-images")
         fd.set("folder", folder)
         fd.set("parent_id", post.id)

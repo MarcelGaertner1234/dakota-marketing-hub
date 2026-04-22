@@ -47,10 +47,24 @@ export default async function KonzeptePage() {
         {concepts?.map((c) => (
           <Link key={c.id} href={`/konzepte/${c.id}`}>
             <Card className="overflow-hidden transition-shadow hover:shadow-lg cursor-pointer h-full">
-              <div
-                className="h-2"
-                style={{ backgroundColor: getConceptColor(c.slug) }}
-              />
+              {c.image_url ? (
+                <div
+                  className="h-32 w-full bg-cover bg-center border-b-4"
+                  style={{
+                    backgroundImage: `url(${c.image_url})`,
+                    borderBottomColor: getConceptColor(c.slug),
+                  }}
+                  role="img"
+                  aria-label={c.name}
+                />
+              ) : (
+                <div
+                  className="h-32 w-full flex items-center justify-center text-4xl font-bold text-white/90"
+                  style={{ backgroundColor: getConceptColor(c.slug) }}
+                >
+                  {c.name.charAt(0)}
+                </div>
+              )}
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">{c.name}</CardTitle>
               </CardHeader>
