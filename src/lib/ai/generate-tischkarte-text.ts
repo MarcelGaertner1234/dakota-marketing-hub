@@ -141,6 +141,14 @@ const DE_STRUCTURAL_PATTERNS: RegExp[] = [
   /\bKrieg.*Symbol/i,
   /\bZweiten\s+Weltkrieg\b/i,
   /\ballem\s+voran\b/i,
+  // Weitere Sprach-Holperer aus Live-Samples
+  /\bbeiläufig\b/i,
+  /\bBerge\s+erfasst\b/i,
+  /\bFrühling\s+hat\s+die\s+Berge\b/i,
+  /\bPlatz\s+einnehmen\b/i,
+  /\bPlatz,\s*den\s+Sie\s+gerade\s+einnehmen\b/i,
+  /\bTisch\s+bereit\s*\.?$/im,
+  /\bhaben\s+Ihren\s+Tisch\s+bereit\b/i,
 ]
 
 // Address-form guard for DE: if the model writes "Lieber Herrmann" when the
@@ -282,12 +290,22 @@ VERBOTENE ABSTRAKTA / FLOSKELN (niemals verwenden):
 - "Ruhe und Blick auf die Berge"
 - allgemeines "Wir freuen uns, dass du hier bist"
 
-STATT DESSEN: konkrete Beobachtungen, Sinnesdetails, kleine Gesten
-- "Dein Tisch steht am Fenster — von dort siehst du die Eiger-Nordwand" (wenn Lage passt)
-- "Die Abendsonne fällt heute genau auf euren Platz"
-- "Der Küchenchef hat für euch einen extra Gang vorbereitet" (nur wenn im customHint erwähnt)
-- "Sieben Plätze, ein runder Tisch, ein langer Abend vor euch"
-- "Draußen wird es spät hell — perfekter Sommerabend für einen Aperol unter freiem Himmel"
+STATT DESSEN: konkrete Beobachtungen, Sinnesdetails, kleine Gesten — nur Dinge, die tatsächlich sein KÖNNEN
+- "Ihr Tisch steht am Fenster, das Licht fällt heute gut auf die Gläser"
+- "Die Abendsonne fällt heute genau auf Ihren Platz"
+- "Sieben Plätze, ein runder Tisch, ein langer Abend vor Ihnen"
+
+SAISON-FORMULIERUNGEN (Beispiele — variieren, nicht 1:1 übernehmen):
+- Frühling: "Draußen schmilzt der Schnee in den höheren Lagen, die Aare führt viel Wasser" / "Es ist die Zeit, in der die Berge langsam grün werden"
+- Sommer: "Heute geht die Sonne erst kurz vor zehn unter" / "Draußen ist es noch warm genug für den Aperitif vor der Tür"
+- Herbst: "Die Lärchen drüben am Hang werden schon gelb" / "Ein erster Kamin-Abend, das merkt man auch drinnen"
+- Winter: "Draußen fällt seit Stunden Schnee, drinnen ist es warm" / "Man sieht Ihnen den Skitag an — herzlich willkommen"
+
+UNBEDINGT VERMEIDEN (schräge Metaphern, die das Modell zuletzt produziert hat):
+- "der Frühling hat die Berge erfasst" (Frühling erfasst nichts)
+- "beiläufig" als Füllwort
+- "den Platz, den Sie gerade einnehmen" (militärisch)
+- "Wir haben Ihren Tisch bereit" (abgehackt → "Ihr Tisch steht bereit")
 
 ═══ ABSOLUTE VERBOTE ═══
 - NIE "Flugfeld", "Flughafen", "Flugplatz", "Piste", "Rollbahn", "Landebahn", "Hangar", "Terminal"
@@ -320,11 +338,21 @@ BEISPIELE — lerne an diesen Kontrasten
 
 Titel: "Willkommen, Herr Herrmann"
 
-Absatz 1: "Schön, dass Sie zu zweit den Weg zu uns in die Air Lounge gefunden haben. Wir haben Ihnen einen Platz reserviert, an dem das späte Sommerlicht besonders warm hereinfällt — einer dieser Abende, an denen es erst nach zehn richtig dunkel wird."
+Absatz 1: "Schön, dass Sie zu zweit den Weg zu uns in die Air Lounge gefunden haben. Ihr Tisch steht am Fenster — heute Abend geht die Sonne erst kurz vor zehn hinter dem Haslihorn unter, das Licht liegt dann golden auf den Gläsern."
 
-Absatz 2: "Unser Haus liegt mitten in Meiringen, an der Amthausgasse zwischen Kirche und Dorfbach. Von draußen hört man gelegentlich das Rauschen der Aare. Der Name erinnert an die alte DC-3, aber das sind Geschichten für einen anderen Abend."
+Absatz 2: "Unser Haus liegt mitten in Meiringen, an der Amthausgasse zwischen Kirche und Dorfbach. Ab und zu hört man die Aare rauschen. Der Name Hotel Dakota geht zurück auf eine alte DC-3 — aber das ist eine Geschichte für einen anderen Abend."
 
 Absatz 3: "Einen feinen Abend Ihnen beiden. Wir sind da, wenn Sie uns brauchen."
+
+◆ GUT (Variante Frühling, 4 Personen, Familienfeier, Nachname "Keller")
+
+Titel: "Willkommen, Familie Keller"
+
+Absatz 1: "Schön, dass ihr heute zu uns in die Air Lounge gefunden habt. Draußen schmilzt der Schnee schon in den höheren Lagen, die Aare führt viel Wasser — man merkt, dass es wieder bergab wärmer wird. Euer Tisch für vier ist gedeckt."
+
+Absatz 2: "Unser Haus liegt mitten im Dorfkern von Meiringen, an der Amthausgasse. Der Name Hotel Dakota geht zurück auf eine alte DC-3 aus den 1940er-Jahren — heute sitzt ihr aber einfach an einem der schönsten Plätze im Dorf."
+
+Absatz 3: "Wir wünschen euch einen warmen Abend zusammen. Meldet euch, wenn ihr etwas braucht."
 
 Warum gut:
 - "Herr Herrmann" (nicht "Lieber Herrmann")
