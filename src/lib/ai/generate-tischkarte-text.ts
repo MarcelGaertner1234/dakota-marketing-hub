@@ -22,140 +22,286 @@ const TischkarteTextSchema = z.object({
     .string()
     .min(3)
     .max(80)
-    .describe(
-      "Warm personal title, ideally with the guest's name."
-    ),
+    .describe("Warm personal title, ideally with the guest's name."),
   paragraph_1: z
     .string()
     .min(40)
     .max(400)
-    .describe(
-      "First paragraph: warm welcome referencing the occasion if present."
-    ),
+    .describe("First paragraph: warm welcome referencing the occasion if present."),
   paragraph_2: z
     .string()
     .min(40)
     .max(400)
     .describe(
-      "Second paragraph: tells something about the Dakota — Meiringen, the house, the feeling of arriving. Never use the word 'hangar'."
+      "Second paragraph: tells something about the Dakota in the village centre of Meiringen. NEVER mention airfield, runway, hangar, aerodrome."
     ),
   paragraph_3: z
     .string()
     .min(20)
     .max(300)
-    .describe(
-      "Third paragraph: short heartfelt closing. A wish for the evening."
-    ),
+    .describe("Third paragraph: short heartfelt closing. A wish for the evening."),
 })
 
 export type GeneratedTischkarteText = z.infer<typeof TischkarteTextSchema>
+
+// ──────────────────────────────────────────────────────────────
+// Forbidden terms (per language). If any appear in the output, we retry.
+// ──────────────────────────────────────────────────────────────
+const FORBIDDEN_TERMS: Record<TischkartenLanguage, RegExp[]> = {
+  de: [
+    /flugfeld/i,
+    /flughafen/i,
+    /flugplatz/i,
+    /\brollbahn\b/i,
+    /\blandebahn\b/i,
+    /\bpiste\b/i,
+    /\bhangar\b/i,
+    /\bterminal\b/i,
+  ],
+  en: [
+    /\bairfield\b/i,
+    /\bairport\b/i,
+    /\brunway\b/i,
+    /\bhangar\b/i,
+    /\baerodrome\b/i,
+    /\btarmac\b/i,
+  ],
+  fr: [
+    /terrain d['’ ]aviation/i,
+    /\baérodrome\b/i,
+    /\baeroport\b/i,
+    /\baéroport\b/i,
+    /\bpiste\b/i,
+    /\bhangar\b/i,
+  ],
+  it: [
+    /campo d['’ ]aviazione/i,
+    /\baeroporto\b/i,
+    /\bpista\b/i,
+    /\bhangar\b/i,
+    /\baerodromo\b/i,
+  ],
+}
+
+// Heuristic check for ASCII-substituted German umlauts in the output.
+// Hits common GastroKalk-style legacy codebases; we want the AI output to use proper ä/ö/ü/ß.
+const GERMAN_ASCII_PATTERNS: RegExp[] = [
+  /\bpersoenl/i,
+  /\bGeschaeft/i,
+  /\bGaeste\b/i,
+  /\bgruess/i,
+  /\bschoen\b/i,
+  /\bfuer\b/i,
+  /\bueber\b/i,
+  /\bnatuerlich/i,
+  /\bSpezialitaet/i,
+  /\bwaehrend\b/i,
+  /\bmuessen\b/i,
+  /\bduerfen\b/i,
+  /\bkoennen\b/i,
+  /\bmoecht/i,
+  /\bAbsaetz/i,
+  /\bAnlaesse/i,
+  /\bBegruess/i,
+  /\bstrasse\b/i,
+]
+
+function hasForbiddenContent(
+  out: GeneratedTischkarteText,
+  lang: TischkartenLanguage
+): { ok: boolean; reason?: string } {
+  const body = [out.title, out.paragraph_1, out.paragraph_2, out.paragraph_3].join("\n")
+
+  for (const rx of FORBIDDEN_TERMS[lang]) {
+    if (rx.test(body)) {
+      return { ok: false, reason: `forbidden term matched ${rx}` }
+    }
+  }
+
+  if (lang === "de") {
+    for (const rx of GERMAN_ASCII_PATTERNS) {
+      if (rx.test(body)) {
+        return { ok: false, reason: `ASCII-substituted umlaut matched ${rx}` }
+      }
+    }
+  }
+
+  return { ok: true }
+}
 
 // ──────────────────────────────────────────────────────────────
 // Language-specific voice prompts
 // ──────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPTS: Record<TischkartenLanguage, string> = {
-  de: `Du schreibst persoenliche Willkommens-Texte fuer Tischkarten im Dakota Air Lounge — einem Restaurant am Flugfeld in Meiringen, Berner Oberland, Schweiz, benannt nach dem legendaeren Flugzeug "Dakota" (DC-3).
+  de: `Du schreibst persönliche Willkommens-Texte für Tischkarten im Dakota Air Lounge — einem Restaurant mitten in Meiringen (Amthausgasse 2), im Berner Oberland, Schweiz.
 
-DIE STIMME DAKOTA:
-- Warm, persoenlich, nahbar — wie ein Brief von guten Freunden
-- Schweizerisches Hochdeutsch, NIE Mundart, nie Anglizismen
-- Du-Form bei Familien und privaten Anlaessen, Sie-Form bei Geschaeftsessen
+═══ STANDORT-FAKTEN (absolute Wahrheit, niemals abweichen) ═══
+- Adresse: Amthausgasse 2, 3860 Meiringen
+- Lage: Dorfkern Meiringen, eingebettet zwischen Reichenbachfall, Aareschlucht und den Bergen des Haslitals
+- Das Haus steht MITTEN IM DORF, nicht am Flugfeld, nicht am Flughafen, nicht an einer Piste
+- Der Name "Dakota" kommt vom legendären Flugzeug DC-3 aus dem Zweiten Weltkrieg — ein Symbol, keine Adresse
+- Das Flugzeug-Logo im Namen erinnert an Pioniergeist, nicht an einen Flugplatz vor der Tür
+
+═══ DIE STIMME DAKOTA ═══
+- Warm, persönlich, nahbar — wie ein Brief von guten Freunden
+- Schweizerisches Hochdeutsch, NIE Mundart, NIE Anglizismen
+- Du-Form bei Familien und privaten Anlässen; Sie-Form bei Geschäftsessen
 - Klar und schlicht — keine Floskeln, keine Marketing-Sprache, keine Superlative
-- Lokal verankert: Meiringen, Reichenbachfall, Berner Oberland, das Haus am Flugfeld, das Flugzeug "Dakota"
-- Die Crew ist eine Familie, nicht ein "Service-Team"
+- Lokal verankert in Meiringen, dem Berner Oberland, dem Haslital
+- Die Crew ist eine Familie, kein "Service-Team"
 
-WAS DIE KARTE LEISTEN SOLL:
-- Den Gast beim Eintreffen am Tisch persoenlich begruessen
-- Das Gefuehl vermitteln "wir haben auf euch gewartet, ihr seid hier richtig"
-- Den Anlass konkret aufgreifen und persoenlich auf die mitgegebenen Details eingehen
-- Eine kleine Atmosphaere schaffen — das Licht, die Weite, das Ankommen
+═══ RECHTSCHREIBUNG (PFLICHT — nicht verhandelbar) ═══
+- IMMER korrekte deutsche Umlaute: ä ö ü Ä Ö Ü ß
+- NIEMALS "ae" statt ä, "oe" statt ö, "ue" statt ü, "ss" statt ß in deutschen Wörtern
+- Schreibe "persönlich" (nicht "persoenlich"), "Gäste" (nicht "Gaeste"), "grüßen" (nicht "gruessen"),
+  "für" (nicht "fuer"), "schön" (nicht "schoen"), "möchten" (nicht "moechten"), "Geschäftsessen" (nicht "Geschaeftsessen"),
+  "Absätze" (nicht "Absaetze"), "Anlässe" (nicht "Anlaesse")
+- Zeichensetzung nach Duden: Gedankenstrich als — oder –, Apostroph typografisch korrekt
 
-WAS DU NIE TUN DARFST:
-- NIE das Wort "Hangar" verwenden — nenne es stattdessen "die Dakota", "das Haus", "unser Platz" oder "die Lounge"
-- Keine Uebertreibungen ("unvergesslicher Abend", "kulinarisches Highlight")
-- Keine standardisierten Floskeln ("Wir wuenschen Ihnen einen schoenen Aufenthalt")
-- Keine Aufzaehlung von Gerichten oder Werbung
+═══ WAS DIE KARTE LEISTEN SOLL ═══
+- Den Gast beim Eintreffen am Tisch persönlich begrüßen
+- Gefühl vermitteln: "Wir haben auf euch gewartet, ihr seid hier richtig"
+- Den Anlass konkret aufgreifen, auf mitgegebene Details persönlich eingehen
+- Eine leise Atmosphäre schaffen: das Licht im Haus, der Blick auf die Berge, das Ankommen nach der Reise
+
+═══ ABSOLUTE VERBOTE ═══
+- NIE "Flugfeld", "Flughafen", "Flugplatz", "Piste", "Rollbahn", "Landebahn", "Hangar", "Terminal" — existiert bei uns nicht
+- NIE behaupten oder andeuten, die Dakota stehe in der Nähe eines Flugplatzes
+- Keine Übertreibungen ("unvergesslicher Abend", "kulinarisches Highlight")
+- Keine Floskeln ("Wir wünschen Ihnen einen schönen Aufenthalt")
+- Keine Aufzählung von Gerichten, keine Werbung
 - Keine Fragen an den Gast
-- Keine Emojis, keine Sterne, keine Sonderzeichen ausser normaler Satzzeichen
+- Keine Emojis, keine Sterne, keine Sonderzeichen außer normaler Satzzeichen
 - Nicht mehrere Anliegen in einen Satz packen
-- Kein Zwei-Absatz-Floskel-Schema — wenn der Gast-Kontext reich ist, mach den zweiten Absatz konkret ueber den Gast statt generisch ueber das Haus
 
-LAENGE: Drei Absaetze, jeder 2-4 Saetze. Kompakt, lesbar, leise.`,
+═══ STATT "FLUGFELD" ODER "HANGAR" VERWENDE ═══
+- "das Haus im Dorfkern"
+- "unsere Stube mitten in Meiringen"
+- "die Dakota"
+- "unser Platz"
+- "die Lounge"
+- "zwischen Reichenbachfall und Aareschlucht"
+- "hier im Haslital"
 
-  en: `You write personal welcome cards for guests at the Dakota Air Lounge — a restaurant at the airfield in Meiringen, Bernese Oberland, Switzerland, named after the legendary "Dakota" aircraft (DC-3).
+═══ LÄNGE ═══
+Drei Absätze, jeder 2–4 Sätze. Kompakt, lesbar, leise.`,
 
-THE DAKOTA VOICE:
+  en: `You write personal welcome cards for guests at the Dakota Air Lounge — a restaurant in the village centre of Meiringen (Amthausgasse 2), Bernese Oberland, Switzerland.
+
+═══ LOCATION FACTS (absolute truth, never deviate) ═══
+- Address: Amthausgasse 2, 3860 Meiringen
+- Setting: village centre of Meiringen, nestled between Reichenbach Falls, Aare Gorge and the mountains of the Haslital valley
+- The house sits in the middle of the village — NOT at an airfield, NOT at an airport, NOT beside a runway
+- The name "Dakota" comes from the legendary DC-3 aircraft of WWII — a symbol of pioneering spirit, not a place
+- The airplane logo evokes adventure, not an airstrip outside the door
+
+═══ THE DAKOTA VOICE ═══
 - Warm, personal, approachable — like a letter from good friends
 - Elegant but not formal — conversational English, no corporate speak
-- Locally rooted: Meiringen, Reichenbach Falls, Bernese Oberland, the house at the airfield, the "Dakota" airplane
+- Locally rooted: Meiringen, Reichenbach Falls, Aare Gorge, Haslital, Bernese Oberland
 - The crew is a family, not a "service team"
 
-WHAT THE CARD SHOULD DO:
+═══ WHAT THE CARD SHOULD DO ═══
 - Greet the guest personally as they arrive at their table
 - Convey the feeling "we've been waiting for you, you're in the right place"
 - Weave in the specific details given about the guest concretely — not generically
-- Create a sense of atmosphere — the light, the wide view, the feeling of arrival
+- Create a quiet atmosphere: the light inside the house, the view of the mountains, the sense of arrival
 
-WHAT YOU MUST NEVER DO:
-- NEVER use the word "hangar" — say "the Dakota", "the house", "our place" or "the lounge" instead
+═══ ABSOLUTE PROHIBITIONS ═══
+- NEVER use "airfield", "airport", "runway", "hangar", "aerodrome", "tarmac", "terminal" — none of these exist here
+- NEVER imply the Dakota sits near a landing strip
 - No exaggerations ("unforgettable evening", "culinary highlight")
 - No stock phrases ("We wish you a pleasant stay")
 - No listing of dishes or advertising
 - No questions to the guest
 - No emojis, no stars, no special characters beyond normal punctuation
 
-LENGTH: Three paragraphs, 2-4 sentences each. Compact, readable, quiet.`,
+═══ USE INSTEAD ═══
+- "the house in the village centre"
+- "our place in the heart of Meiringen"
+- "the Dakota"
+- "our lounge"
+- "between Reichenbach Falls and the Aare Gorge"
+- "here in the Haslital"
 
-  fr: `Tu ecris des cartes de bienvenue personnalisees pour les hotes du Dakota Air Lounge — un restaurant situe au terrain d'aviation de Meiringen, dans l'Oberland bernois, en Suisse, nomme d'apres le legendaire avion "Dakota" (DC-3).
+═══ LENGTH ═══
+Three paragraphs, 2–4 sentences each. Compact, readable, quiet.`,
 
-LA VOIX DAKOTA:
+  fr: `Tu écris des cartes de bienvenue personnalisées pour les hôtes du Dakota Air Lounge — un restaurant au cœur du village de Meiringen (Amthausgasse 2), dans l'Oberland bernois, en Suisse.
+
+═══ FAITS DE LOCALISATION (vérité absolue, jamais dévier) ═══
+- Adresse : Amthausgasse 2, 3860 Meiringen
+- Situation : centre du village de Meiringen, entre les chutes du Reichenbach, les gorges de l'Aar et les montagnes du Haslital
+- La maison se trouve au milieu du village — PAS près d'un terrain d'aviation, PAS dans un aéroport, PAS près d'une piste
+- Le nom "Dakota" vient du légendaire avion DC-3 de la Seconde Guerre mondiale — un symbole, pas une adresse
+- Le logo de l'avion évoque l'esprit pionnier, pas une piste devant la porte
+
+═══ LA VOIX DAKOTA ═══
 - Chaleureuse, personnelle, accessible — comme une lettre de bons amis
-- Francais elegant mais pas guinde — ni trop familier, ni corporatif
-- Ancre localement: Meiringen, les chutes du Reichenbach, l'Oberland bernois, la maison au terrain d'aviation, l'avion "Dakota"
-- L'equipe est une famille, pas un "personnel de service"
+- Français élégant mais pas guindé
+- Ancrée localement : Meiringen, chutes du Reichenbach, gorges de l'Aar, Haslital, Oberland bernois
+- L'équipe est une famille, pas un "personnel de service"
 
-CE QUE LA CARTE DOIT ACCOMPLIR:
-- Accueillir l'hote personnellement a son arrivee a table
-- Transmettre le sentiment "nous vous attendions, vous etes au bon endroit"
-- Integrer concretement les details specifiques donnes sur l'hote — pas de generalites
-- Creer une atmosphere — la lumiere, l'etendue, le sentiment d'arriver
+═══ ORTHOGRAPHE ═══
+- Accents corrects partout : é è ê ë à â ô û î ï ç
+- Apostrophes typographiques propres
 
-CE QUE TU NE DOIS JAMAIS FAIRE:
-- NE JAMAIS utiliser le mot "hangar" — dis plutot "le Dakota", "la maison", "notre place" ou "le lounge"
-- Pas d'exagerations ("soiree inoubliable", "experience culinaire unique")
-- Pas de formules toutes faites ("Nous vous souhaitons un agreable sejour")
-- Pas de liste de plats ni de publicite
-- Pas de questions a l'hote
-- Pas d'emojis, d'etoiles ou de caracteres speciaux
+═══ INTERDICTIONS ABSOLUES ═══
+- JAMAIS "terrain d'aviation", "aéroport", "aérodrome", "piste", "hangar" — rien de tout cela n'existe ici
+- JAMAIS suggérer que le Dakota se trouve près d'un site aéronautique
+- Pas d'exagérations ("soirée inoubliable", "expérience culinaire unique")
+- Pas de formules toutes faites ("Nous vous souhaitons un agréable séjour")
+- Pas de liste de plats ni de publicité
+- Pas de questions à l'hôte
+- Pas d'emojis ni de caractères spéciaux
 
-LONGUEUR: Trois paragraphes, 2-4 phrases chacun. Compact, lisible, sobre.`,
+═══ À UTILISER À LA PLACE ═══
+- "la maison au cœur du village"
+- "notre place au centre de Meiringen"
+- "le Dakota"
+- "notre salon"
+- "entre les chutes du Reichenbach et les gorges de l'Aar"
 
-  it: `Scrivi biglietti di benvenuto personalizzati per gli ospiti del Dakota Air Lounge — un ristorante al campo d'aviazione di Meiringen, nell'Oberland bernese, in Svizzera, chiamato come il leggendario aereo "Dakota" (DC-3).
+═══ LONGUEUR ═══
+Trois paragraphes, 2–4 phrases chacun. Compact, lisible, sobre.`,
 
-LA VOCE DAKOTA:
+  it: `Scrivi biglietti di benvenuto personalizzati per gli ospiti del Dakota Air Lounge — un ristorante nel centro del villaggio di Meiringen (Amthausgasse 2), nell'Oberland bernese, in Svizzera.
+
+═══ FATTI SULLA POSIZIONE (verità assoluta, mai deviare) ═══
+- Indirizzo: Amthausgasse 2, 3860 Meiringen
+- Posizione: centro del villaggio di Meiringen, incastonato tra le cascate di Reichenbach, la gola dell'Aar e le montagne dell'Haslital
+- La casa si trova in mezzo al paese — NON presso un campo d'aviazione, NON in un aeroporto, NON vicino a una pista
+- Il nome "Dakota" deriva dal leggendario aereo DC-3 della Seconda Guerra Mondiale — un simbolo, non un luogo
+- Il logo dell'aereo evoca lo spirito pionieristico, non una pista fuori dalla porta
+
+═══ LA VOCE DAKOTA ═══
 - Calda, personale, accogliente — come una lettera da buoni amici
-- Italiano elegante ma non formale — ne troppo confidenziale, ne aziendale
-- Radicato localmente: Meiringen, le cascate di Reichenbach, l'Oberland bernese, la casa al campo d'aviazione, l'aereo "Dakota"
-- L'equipaggio e una famiglia, non un "team di servizio"
+- Italiano elegante ma non formale
+- Radicato localmente: Meiringen, cascate di Reichenbach, gola dell'Aar, Haslital, Oberland bernese
+- L'equipaggio è una famiglia, non un "team di servizio"
 
-COSA DEVE FARE IL BIGLIETTO:
-- Accogliere l'ospite personalmente al suo arrivo al tavolo
-- Trasmettere la sensazione "vi stavamo aspettando, siete nel posto giusto"
-- Integrare concretamente i dettagli specifici sull'ospite — non generalizzare
-- Creare un'atmosfera — la luce, l'ampiezza, la sensazione di arrivare
+═══ ORTOGRAFIA ═══
+- Accenti corretti: è é à ò ù ì
 
-NON USARE MAI:
-- MAI la parola "hangar" — di' invece "la Dakota", "la casa", "il nostro posto" o "la lounge"
-
-COSA NON DEVI MAI FARE:
-- Nessuna esagerazione ("serata indimenticabile", "esperienza culinaria")
+═══ DIVIETI ASSOLUTI ═══
+- MAI "campo d'aviazione", "aeroporto", "pista", "hangar", "aerodromo" — nulla di tutto ciò esiste qui
+- MAI suggerire che il Dakota si trovi vicino a un luogo aeronautico
+- Nessuna esagerazione ("serata indimenticabile", "esperienza culinaria unica")
 - Nessuna frase fatta ("Vi auguriamo un piacevole soggiorno")
-- Nessun elenco di piatti o pubblicita
+- Nessun elenco di piatti o pubblicità
 - Nessuna domanda all'ospite
-- Nessun emoji, stelle o caratteri speciali
+- Nessun emoji o carattere speciale
 
-LUNGHEZZA: Tre paragrafi, 2-4 frasi ciascuno. Compatto, leggibile, discreto.`,
+═══ USA INVECE ═══
+- "la casa nel centro del villaggio"
+- "il nostro posto nel cuore di Meiringen"
+- "il Dakota"
+- "la nostra lounge"
+- "tra le cascate di Reichenbach e la gola dell'Aar"
+
+═══ LUNGHEZZA ═══
+Tre paragrafi, 2–4 frasi ciascuno. Compatto, leggibile, discreto.`,
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -166,7 +312,7 @@ const OCCASION_LABELS: Record<TischkartenLanguage, Record<TischkartenOccasion, s
   de: {
     birthday: "Geburtstag",
     anniversary: "Jahrestag",
-    business: "Geschaeftsessen",
+    business: "Geschäftsessen",
     family: "Familienfeier",
     wedding: "Hochzeit",
     none: "kein besonderer Anlass",
@@ -182,10 +328,10 @@ const OCCASION_LABELS: Record<TischkartenLanguage, Record<TischkartenOccasion, s
   fr: {
     birthday: "Anniversaire",
     anniversary: "Anniversaire de mariage",
-    business: "Diner d'affaires",
-    family: "Fete de famille",
+    business: "Dîner d'affaires",
+    family: "Fête de famille",
     wedding: "Mariage",
-    none: "pas d'occasion particuliere",
+    none: "pas d'occasion particulière",
   },
   it: {
     birthday: "Compleanno",
@@ -198,16 +344,23 @@ const OCCASION_LABELS: Record<TischkartenLanguage, Record<TischkartenOccasion, s
 }
 
 const WRITE_INSTRUCTION: Record<TischkartenLanguage, string> = {
-  de: "Verfasse Titel und drei Absaetze gemaess dem strikten Schema. Personalisiert, warm, im Dakota-Ton.",
-  en: "Write the title and three paragraphs following the strict schema. Personalized, warm, in the Dakota tone.",
-  fr: "Redige le titre et trois paragraphes selon le schema strict. Personnalise, chaleureux, dans le ton Dakota.",
-  it: "Scrivi il titolo e tre paragrafi secondo lo schema rigoroso. Personalizzato, caldo, nel tono Dakota.",
+  de: "Verfasse Titel und drei Absätze gemäß dem strikten Schema. Persönlich, warm, im Dakota-Ton. Verwende korrekte deutsche Umlaute (ä ö ü ß) — niemals ae/oe/ue/ss als Ersatz. Vermeide jede Anspielung auf Flugfeld, Flughafen, Piste oder Hangar.",
+  en: "Write the title and three paragraphs following the strict schema. Personal, warm, in the Dakota tone. Never mention airfield, airport, runway, hangar, or aerodrome.",
+  fr: "Rédige le titre et trois paragraphes selon le schéma strict. Personnalisé, chaleureux, dans le ton Dakota. Ne jamais mentionner terrain d'aviation, aéroport, piste ou hangar.",
+  it: "Scrivi il titolo e tre paragrafi secondo lo schema rigoroso. Personalizzato, caldo, nel tono Dakota. Non menzionare mai campo d'aviazione, aeroporto, pista o hangar.",
+}
+
+const RETRY_INSTRUCTION: Record<TischkartenLanguage, string> = {
+  de: "ACHTUNG — letzter Versuch enthielt verbotene Begriffe (Flugfeld/Hangar/etc.) oder falsche Umlaut-Schreibung. Die Dakota steht MITTEN IN MEIRINGEN, nicht am Flugfeld. Schreibe den Text neu, strikt innerhalb der Regeln, mit korrekten deutschen Umlauten (ä ö ü ß).",
+  en: "ATTENTION — last attempt contained forbidden terms (airfield/hangar/etc.). The Dakota sits IN THE VILLAGE CENTRE of Meiringen, NOT at any airfield. Rewrite strictly within the rules.",
+  fr: "ATTENTION — la tentative précédente contenait des termes interdits (terrain d'aviation/hangar/etc.). Le Dakota se trouve AU CENTRE DU VILLAGE de Meiringen, PAS près d'un terrain d'aviation. Réécris strictement dans les règles.",
+  it: "ATTENZIONE — il tentativo precedente conteneva termini vietati (campo d'aviazione/hangar/ecc.). Il Dakota si trova NEL CENTRO DEL VILLAGGIO di Meiringen, NON presso un campo d'aviazione. Riscrivi rigorosamente secondo le regole.",
 }
 
 const FOOTER_SIGNATURES: Record<TischkartenLanguage, string> = {
   de: "Ihre Dakota Crew",
   en: "Your Dakota Crew",
-  fr: "Votre equipe Dakota",
+  fr: "Votre équipe Dakota",
   it: "Il vostro team Dakota",
 }
 
@@ -249,9 +402,9 @@ export async function generateTischkarteText(
   const labels = OCCASION_LABELS[lang]
 
   const promptIntro: Record<TischkartenLanguage, string> = {
-    de: `Schreibe eine persoenliche Tischkarte fuer: ${input.guestName}`,
+    de: `Schreibe eine persönliche Tischkarte für: ${input.guestName}`,
     en: `Write a personal table card for: ${input.guestName}`,
-    fr: `Ecris une carte de table personnalisee pour: ${input.guestName}`,
+    fr: `Écris une carte de table personnalisée pour : ${input.guestName}`,
     it: `Scrivi un biglietto da tavolo personalizzato per: ${input.guestName}`,
   }
 
@@ -276,9 +429,7 @@ export async function generateTischkarteText(
       it: ["persona", "persone"],
     }
     const [sing, plur] = personLabels[lang]
-    userPromptParts.push(
-      `${input.partySize} ${input.partySize === 1 ? sing : plur}`
-    )
+    userPromptParts.push(`${input.partySize} ${input.partySize === 1 ? sing : plur}`)
   }
 
   if (input.reservationDate) {
@@ -298,36 +449,61 @@ export async function generateTischkarteText(
 
   if (input.customHint && input.customHint.trim().length > 0) {
     const hintPrefixes: Record<TischkartenLanguage, string> = {
-      de: "Zusaetzlicher Kontext von der Crew",
+      de: "Zusätzlicher Kontext von der Crew",
       en: "Additional context from the crew",
-      fr: "Contexte supplementaire de l'equipe",
+      fr: "Contexte supplémentaire de l'équipe",
       it: "Contesto aggiuntivo dal team",
     }
-    userPromptParts.push(
-      `${hintPrefixes[lang]}: ${input.customHint.trim()}`
-    )
+    userPromptParts.push(`${hintPrefixes[lang]}: ${input.customHint.trim()}`)
   }
 
   userPromptParts.push("", WRITE_INSTRUCTION[lang])
 
-  const userPrompt = userPromptParts.join("\n")
+  const baseUserPrompt = userPromptParts.join("\n")
 
-  const result = await generateObject({
-    model: TEXT_MODEL,
-    schema: TischkarteTextSchema,
-    system: SYSTEM_PROMPTS[lang],
-    prompt: userPrompt,
-    temperature: 0.8,
-    providerOptions: {
-      gateway: {
-        tags: [
-          "feature:tischkarte-text",
-          `occasion:${input.occasion ?? "none"}`,
-          `lang:${lang}`,
-        ],
+  const MAX_ATTEMPTS = 2
+  let lastResult: GeneratedTischkarteText | null = null
+  let lastReason: string | undefined
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const userPrompt =
+      attempt === 0
+        ? baseUserPrompt
+        : `${baseUserPrompt}\n\n${RETRY_INSTRUCTION[lang]}`
+
+    const result = await generateObject({
+      model: TEXT_MODEL,
+      schema: TischkarteTextSchema,
+      system: SYSTEM_PROMPTS[lang],
+      prompt: userPrompt,
+      temperature: 0.6,
+      providerOptions: {
+        gateway: {
+          tags: [
+            "feature:tischkarte-text",
+            `occasion:${input.occasion ?? "none"}`,
+            `lang:${lang}`,
+            `attempt:${attempt}`,
+          ],
+        },
       },
-    },
-  })
+    })
 
-  return result.object
+    lastResult = result.object
+    const check = hasForbiddenContent(lastResult, lang)
+    if (check.ok) {
+      return lastResult
+    }
+    lastReason = check.reason
+  }
+
+  // Both attempts violated the guards. Return the last result but log so we notice drift.
+  // (We never throw: the card is better than no card — downstream can manual-edit.)
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[generateTischkarteText] Returning output that failed guard after ${MAX_ATTEMPTS} attempts: ${lastReason}`
+    )
+  }
+  return lastResult as GeneratedTischkarteText
 }
