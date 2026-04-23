@@ -110,18 +110,60 @@ const GERMAN_ASCII_PATTERNS: RegExp[] = [
 // These target the specific drift Marcel flagged: using "die Dakota" as a
 // location label for the restaurant, awkward reflexive constructions, etc.
 const DE_STRUCTURAL_PATTERNS: RegExp[] = [
-  // "die Dakota" / "der Dakota" as a location (e.g. "die Dakota steht", "in der Dakota", "die Dakota gefunden")
+  // "die Dakota" / "der Dakota" as a location
   /\b(?:in|an|bei|zu|die|der|das|den|dem)\s+(?:das\s+)?Dakota\b/i,
   /\bDakota\s+(?:steht|liegt|befindet|heißt|nennt|ist\s+(?:ein|das|unser|mitten))\b/i,
-  // "ihr … niederlasst" without reflexive pronoun nearby (awkward form)
+  // "ihr … niederlasst" without reflexive pronoun nearby
   /\bihr\s+\w{0,15}\s+niederlasst\b/i,
-  // Generic Dakota-as-place ("die Dakota gefunden")
+  // Generic Dakota-as-place
   /\b(?:die|der|das)\s+Dakota\s+(?:gefunden|entdeckt|besucht|betretet|betreten)\b/i,
+  // KI-Floskeln that make the text feel generated
+  /\bPioniergeist\b/i,
+  /\bAbenteuer\b/i,
+  /\bVerneigung\s+vor\b/i,
+  /\bbodenständig\b/i,
+  /\bwarme\s+Stube\b/i,
+  /\beingekuschelt\b/i,
+  /\bLass\s+dich\s+fallen\b/i,
+  /\bhier\s+zu\s+Hause\s+fühlen\b/i,
+  /\bsymbol\s+für\s+Pionier/i,
+  /\blegend(ären|äres)\s+Flugzeug/i,
 ]
+
+// Address-form guard for DE: if the model writes "Lieber Herrmann" when the
+// guest name is a single token (treated as last name), force a retry.
+function hasBadAddressForm(
+  out: GeneratedTischkarteText,
+  guestName: string
+): boolean {
+  const trimmed = guestName.trim()
+  if (!trimmed || /\s/.test(trimmed)) return false
+  // Single-word name. It should appear with Herr/Frau prefix, or as Familie/Herrschaft.
+  const body = [out.title, out.paragraph_1].join("\n")
+  const nameRx = new RegExp(
+    `\\b(?:Lieber|Liebe|Hallo|Willkommen)\\s+${trimmed}\\b`,
+    "i"
+  )
+  const politeRx = new RegExp(
+    `\\b(?:Herr|Frau|Familie|Sehr\\s+geehrter?\\s+(?:Herr|Frau))\\s+${trimmed}\\b`,
+    "i"
+  )
+  if (nameRx.test(body) && !politeRx.test(body)) return true
+  return false
+}
+
+// Check that the Air Lounge actually appears somewhere (it's the subject).
+function mentionsAirLounge(out: GeneratedTischkarteText): boolean {
+  const body = [out.title, out.paragraph_1, out.paragraph_2, out.paragraph_3].join(
+    " "
+  )
+  return /\bair\s*lounge\b/i.test(body)
+}
 
 function hasForbiddenContent(
   out: GeneratedTischkarteText,
-  lang: TischkartenLanguage
+  lang: TischkartenLanguage,
+  guestName: string
 ): { ok: boolean; reason?: string } {
   const body = [out.title, out.paragraph_1, out.paragraph_2, out.paragraph_3].join("\n")
 
@@ -142,6 +184,16 @@ function hasForbiddenContent(
         return { ok: false, reason: `structural pattern matched ${rx}` }
       }
     }
+    if (hasBadAddressForm(out, guestName)) {
+      return {
+        ok: false,
+        reason: `last name "${guestName}" used without Herr/Frau prefix`,
+      }
+    }
+  }
+
+  if (!mentionsAirLounge(out)) {
+    return { ok: false, reason: "Air Lounge not mentioned in the text" }
   }
 
   return { ok: true }
@@ -152,18 +204,25 @@ function hasForbiddenContent(
 // ──────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPTS: Record<TischkartenLanguage, string> = {
-  de: `Du schreibst persönliche Willkommens-Texte für Tischkarten in der Air Lounge, dem Restaurant im Hotel Dakota in Meiringen (Amthausgasse 2), Berner Oberland, Schweiz.
+  de: `Du schreibst persönliche, handschriftlich wirkende Willkommens-Texte für Tischkarten in der Air Lounge — dem Restaurant im Hotel Dakota in Meiringen (Amthausgasse 2), Berner Oberland, Schweiz.
+
+═══ HAUSREGEL — AIR LOUNGE STEHT IMMER VORNE ═══
+- Das Restaurant heißt "Air Lounge" — dieser Name wird in JEDEM Text mindestens einmal konkret verwendet
+- Absatz 1 beginnt IMMER mit der Air Lounge oder dem Gast, NIE mit "die Dakota"
+- "Dakota" darf NUR in Absatz 2 und NUR als historische Hommage erwähnt werden ("der Name erinnert an das DC-3-Flugzeug") — und auch dann nur beiläufig, nicht als zentrales Thema
+- Absatz 2 erzählt primär von der Air Lounge, dem Haus, dem Dorfkern — NICHT hauptsächlich vom Flugzeug
 
 ═══ ENTITÄTEN (niemals verwechseln) ═══
-- "Hotel Dakota" = das Hotel in Meiringen, benannt nach dem legendären DC-3-Flugzeug "Dakota"
-- "Air Lounge" = das Restaurant im Hotel Dakota — HIER sitzt der Gast am Tisch
-- "Dakota" (DC-3) = das Flugzeug, das dem Hotel seinen Namen gegeben hat — nur als historische Referenz, NIE als Ortsbezeichnung für das Restaurant
-- Der Gast kommt in die Air Lounge, nicht "in die Dakota" und nicht "in den Hangar"
+- "Hotel Dakota" = das Hotel, benannt nach dem DC-3-Flugzeug "Dakota"
+- "Air Lounge" = das Restaurant im Hotel Dakota — HIER sitzt der Gast am Tisch — das ist der Protagonist dieses Textes
+- "Dakota" (DC-3) = nur historische Referenz, NIE Ortsangabe
+- Der Gast kommt in die Air Lounge, nicht "in die Dakota"
 
 ═══ SPRACHLICHE REGEL (wichtig!) ═══
-- Wenn das Haus gemeint ist → "die Air Lounge" oder "das Hotel Dakota" oder "unser Haus"
-- NIEMALS "die Dakota" als Synonym fürs Restaurant benutzen
-- "Die Dakota" darf höchstens historisch erwähnt werden ("benannt nach der legendären Dakota", "wie die DC-3, die uns den Namen gab")
+- Wenn das Haus/Restaurant gemeint ist → "die Air Lounge", "bei uns", "hier", "unser Haus"
+- NIEMALS "die Dakota" als Ortsangabe fürs Restaurant
+- Statt "an deinem Tisch in der Dakota" → "an deinem Tisch in der Air Lounge"
+- Statt "Die Dakota steht mitten im Dorfkern" → "Die Air Lounge liegt mitten im Dorfkern von Meiringen"
 
 ═══ STANDORT-FAKTEN (absolute Wahrheit, niemals abweichen) ═══
 - Adresse: Amthausgasse 2, 3860 Meiringen
@@ -189,20 +248,40 @@ const SYSTEM_PROMPTS: Record<TischkartenLanguage, string> = {
 
 ═══ WAS DIE KARTE LEISTEN SOLL ═══
 - Den Gast beim Eintreffen am Tisch persönlich begrüßen
-- Gefühl vermitteln: "Wir haben auf euch gewartet, ihr seid hier richtig"
-- Den Anlass konkret aufgreifen, auf mitgegebene Details persönlich eingehen
-- Eine leise Atmosphäre schaffen: das Licht im Haus, der Blick auf die Berge, das Ankommen nach der Reise
+- Gefühl vermitteln: "Wir haben auf dich/euch gewartet, du bist/ihr seid hier richtig"
+- Den Anlass konkret aufgreifen, die mitgegebenen Details persönlich einweben (Party-Größe, Datum, Anlass, Zusatz-Hinweise)
+- Eine leise, SAISONALE Atmosphäre schaffen — konkrete Sinnesdetails, keine Abstrakta
+
+═══ ANTI-KI-TON (sehr wichtig — diese Karte darf NICHT generisch wirken) ═══
+Der Text soll klingen wie von einem Menschen handgeschrieben, nicht wie von einer Software generiert.
+
+VERBOTENE ABSTRAKTA / FLOSKELN (niemals verwenden):
+- "Pioniergeist", "Abenteuer", "legendär", "Verneigung", "Symbol für", "Hommage"
+- "bodenständig", "warme Stube", "ganz bodenständig"
+- "genieße/geniesst den Abend", "erholsamen Abend", "schöner Abend"
+- "hier zu Hause fühlen", "Ankommen", "Durchatmen"
+- "eingekuschelt zwischen", "incastonato", "nestled"
+- "Lass dich fallen"
+- "Ruhe und Blick auf die Berge"
+- allgemeines "Wir freuen uns, dass du hier bist"
+
+STATT DESSEN: konkrete Beobachtungen, Sinnesdetails, kleine Gesten
+- "Dein Tisch steht am Fenster — von dort siehst du die Eiger-Nordwand" (wenn Lage passt)
+- "Die Abendsonne fällt heute genau auf euren Platz"
+- "Der Küchenchef hat für euch einen extra Gang vorbereitet" (nur wenn im customHint erwähnt)
+- "Sieben Plätze, ein runder Tisch, ein langer Abend vor euch"
+- "Draußen wird es spät hell — perfekter Sommerabend für einen Aperol unter freiem Himmel"
 
 ═══ ABSOLUTE VERBOTE ═══
-- NIE "Flugfeld", "Flughafen", "Flugplatz", "Piste", "Rollbahn", "Landebahn", "Hangar", "Terminal" — existiert bei uns nicht
-- NIE "die Dakota" als Ortsbezeichnung fürs Restaurant (es heißt "Air Lounge" im "Hotel Dakota")
+- NIE "Flugfeld", "Flughafen", "Flugplatz", "Piste", "Rollbahn", "Landebahn", "Hangar", "Terminal"
+- NIE "die Dakota" als Ortsbezeichnung fürs Restaurant
+- NIE die oben gelisteten KI-Floskeln
+- NIE Vornamen erfinden, wenn nur ein Nachname bekannt ist — dann "Herr X" oder "Frau X"
 - Keine Übertreibungen ("unvergesslicher Abend", "kulinarisches Highlight")
-- Keine Floskeln ("Wir wünschen Ihnen einen schönen Aufenthalt")
 - Keine Aufzählung von Gerichten, keine Werbung
 - Keine Fragen an den Gast
 - Keine Emojis, keine Sterne, keine Sonderzeichen außer normaler Satzzeichen
 - Nicht mehrere Anliegen in einen Satz packen
-- Keine umständlichen Reflexiv-Konstruktionen
 
 ═══ ERLAUBTE FORMULIERUNGEN FÜRS HAUS ═══
 - "in der Air Lounge"
@@ -432,6 +511,82 @@ export interface GenerateTischkarteTextInput {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Name parsing — decide between Vorname-only, Nachname-only, Familie
+// ──────────────────────────────────────────────────────────────
+
+type NameForm =
+  | { kind: "firstname"; display: string }
+  | { kind: "lastname"; display: string }
+  | { kind: "full"; first: string; last: string }
+  | { kind: "family"; display: string }
+  | { kind: "group"; display: string }
+
+const FAMILY_HINTS = /\b(familie|family|famille|famiglia)\b/i
+
+function parseGuestName(raw: string): NameForm {
+  const trimmed = raw.trim()
+  if (!trimmed) return { kind: "group", display: raw }
+
+  if (FAMILY_HINTS.test(trimmed)) {
+    return { kind: "family", display: trimmed }
+  }
+
+  const words = trimmed.split(/\s+/).filter(Boolean)
+
+  if (words.length === 1) {
+    // Single token — treat as a last name. The system prompt tells the model
+    // to use "Herr X" / "Frau X" and infer gender from the name itself.
+    return { kind: "lastname", display: words[0] }
+  }
+
+  if (words.length === 2) {
+    return { kind: "full", first: words[0], last: words[1] }
+  }
+
+  // Three+ words: treat as group or family
+  return { kind: "group", display: trimmed }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Season detection from reservation date (Northern hemisphere)
+// ──────────────────────────────────────────────────────────────
+
+type Season = "spring" | "summer" | "autumn" | "winter"
+
+const SEASON_DETAILS_DE: Record<Season, string> = {
+  spring:
+    "Frühling (März–Mai): die Berge liegen noch halb im Schnee, die Aare führt viel Wasser, milde Abende, erste Bergblumen, Spargel-Saison in der Küche",
+  summer:
+    "Sommer (Juni–August): lange helle Abende bis 22 Uhr, warme Luft, Aperitif auf der Terrasse, Alpenblumen blühen, die Aare leuchtet türkis, Wanderer kommen durstig aus den Bergen",
+  autumn:
+    "Herbst (September–November): goldenes Licht, die Lärchen werden gelb, kühlere Abende, Wildsaison in der Küche, die ersten Kamine knistern",
+  winter:
+    "Winter (Dezember–Februar): früh dunkel, Schnee, die Gäste kommen mit roten Wangen vom Skifahren oder Rodeln rein, Kerzen brennen, Raclette- und Fondue-Duft",
+}
+
+function getSeason(dateInput: string | null | undefined): Season {
+  const d = dateInput ? new Date(dateInput) : new Date()
+  const validDate = isNaN(d.getTime()) ? new Date() : d
+  const m = validDate.getMonth() + 1
+  if (m >= 3 && m <= 5) return "spring"
+  if (m >= 6 && m <= 8) return "summer"
+  if (m >= 9 && m <= 11) return "autumn"
+  return "winter"
+}
+
+const SEASON_LABELS: Record<TischkartenLanguage, Record<Season, string>> = {
+  de: {
+    spring: "Frühling",
+    summer: "Sommer",
+    autumn: "Herbst",
+    winter: "Winter",
+  },
+  en: { spring: "Spring", summer: "Summer", autumn: "Autumn", winter: "Winter" },
+  fr: { spring: "Printemps", summer: "Été", autumn: "Automne", winter: "Hiver" },
+  it: { spring: "Primavera", summer: "Estate", autumn: "Autunno", winter: "Inverno" },
+}
+
+// ──────────────────────────────────────────────────────────────
 // Exports for shared use
 // ──────────────────────────────────────────────────────────────
 export { OCCASION_LABELS, FOOTER_SIGNATURES, DATE_LOCALES }
@@ -444,15 +599,72 @@ export async function generateTischkarteText(
 ): Promise<GeneratedTischkarteText> {
   const lang: TischkartenLanguage = input.language ?? "de"
   const labels = OCCASION_LABELS[lang]
+  const name = parseGuestName(input.guestName)
+  const season = getSeason(input.reservationDate)
 
-  const promptIntro: Record<TischkartenLanguage, string> = {
-    de: `Schreibe eine persönliche Tischkarte für: ${input.guestName}`,
-    en: `Write a personal table card for: ${input.guestName}`,
-    fr: `Écris une carte de table personnalisée pour : ${input.guestName}`,
-    it: `Scrivi un biglietto da tavolo personalizzato per: ${input.guestName}`,
+  // Explicit addressing instruction for the model — prevents it from
+  // treating last names as first names (e.g. "Lieber Herrmann" instead of
+  // "Herr Herrmann" / "Lieber Herr Herrmann").
+  const nameInstructions: Record<TischkartenLanguage, string> = {
+    de:
+      name.kind === "lastname"
+        ? `WICHTIG: "${name.display}" ist der Nachname des Gastes (kein Vorname). Sprich den Gast mit "Herr ${name.display}" oder "Frau ${name.display}" an — entscheide das Geschlecht anhand des Namens. Wenn du dir unsicher bist, verwende "Liebe Familie ${name.display}" oder neutral "Liebe Gäste". NIEMALS "Lieber ${name.display}" oder "Liebe ${name.display}".`
+        : name.kind === "family"
+        ? `Anrede als Familie: "Liebe ${name.display}" oder "Willkommen, ${name.display}".`
+        : name.kind === "full"
+        ? `Der Gast heißt "${name.first} ${name.last}" — Vorname und Nachname. Bei privaten Anlässen (Geburtstag, Familienfeier, Hochzeit, Jahrestag) darfst du den Vornamen nutzen: "Lieber ${name.first}" oder "Liebe ${name.first}". Bei Geschäftsessen immer formell: "Sehr geehrter Herr ${name.last}" oder "Sehr geehrte Frau ${name.last}".`
+        : name.kind === "group"
+        ? `"${name.display}" scheint eine Gruppe oder Familie zu sein. Wähle eine passende Gruppen-Anrede ("Liebe ${name.display}", "Willkommen, ${name.display}").`
+        : `Der Gast heißt "${name.display}". Sprich freundlich, aber ohne Vornamen zu erfinden.`,
+    en:
+      name.kind === "lastname"
+        ? `IMPORTANT: "${name.display}" is the guest's last name. Address them as "Mr ${name.display}" or "Ms ${name.display}" — decide the gender from the name. NEVER use "Dear ${name.display}" as if it were a first name.`
+        : name.kind === "family"
+        ? `Address as family: "Dear ${name.display}".`
+        : name.kind === "full"
+        ? `Guest is "${name.first} ${name.last}" (first + last). For private occasions you may use the first name "Dear ${name.first}"; for business always formal "Dear Mr/Ms ${name.last}".`
+        : `Address the party naturally without inventing a first name.`,
+    fr:
+      name.kind === "lastname"
+        ? `IMPORTANT : "${name.display}" est le nom de famille. Utilise "Monsieur ${name.display}" ou "Madame ${name.display}" — décide selon le nom. JAMAIS "Cher ${name.display}" comme un prénom.`
+        : name.kind === "full"
+        ? `"${name.first} ${name.last}" — prénom et nom. Occasions privées : "Cher ${name.first}" ; affaires : "Monsieur/Madame ${name.last}".`
+        : `Adresse naturelle, sans inventer de prénom.`,
+    it:
+      name.kind === "lastname"
+        ? `IMPORTANTE: "${name.display}" è il cognome. Usa "Signor ${name.display}" o "Signora ${name.display}" — decidi dal nome. MAI "Caro ${name.display}" come fosse un nome.`
+        : name.kind === "full"
+        ? `"${name.first} ${name.last}" — nome e cognome. Occasioni private: "Caro/Cara ${name.first}"; affari: "Signor/Signora ${name.last}".`
+        : `Saluta l'ospite senza inventare un nome.`,
   }
 
-  const userPromptParts: string[] = [promptIntro[lang]]
+  // Season block — embeds concrete sensory hints for this time of year
+  const seasonBlockDe = `JAHRESZEIT: ${SEASON_LABELS.de[season]}. ${SEASON_DETAILS_DE[season]}. Verwebe MINDESTENS EIN konkretes saisonales Detail in den Text (nicht alles, nur eines das passt).`
+  const seasonBlockEn = `SEASON: ${SEASON_LABELS.en[season]}. Weave at least one concrete seasonal detail into the text (long daylight for summer, red cheeks from skiing for winter, etc.).`
+  const seasonBlockFr = `SAISON: ${SEASON_LABELS.fr[season]}. Intègre au moins un détail saisonnier concret.`
+  const seasonBlockIt = `STAGIONE: ${SEASON_LABELS.it[season]}. Inserisci almeno un dettaglio stagionale concreto.`
+
+  const seasonBlock: Record<TischkartenLanguage, string> = {
+    de: seasonBlockDe,
+    en: seasonBlockEn,
+    fr: seasonBlockFr,
+    it: seasonBlockIt,
+  }
+
+  const promptIntro: Record<TischkartenLanguage, string> = {
+    de: `Schreibe eine persönliche, handschriftlich wirkende Tischkarte für den Gast: ${input.guestName}`,
+    en: `Write a personal, hand-written style table card for: ${input.guestName}`,
+    fr: `Écris une carte de table personnelle, style manuscrit : ${input.guestName}`,
+    it: `Scrivi un biglietto da tavolo personale, stile manoscritto: ${input.guestName}`,
+  }
+
+  const userPromptParts: string[] = [
+    promptIntro[lang],
+    "",
+    nameInstructions[lang],
+    "",
+    seasonBlock[lang],
+  ]
 
   if (input.occasion && input.occasion !== "none") {
     const occasionLabel = labels[input.occasion]
@@ -520,7 +732,7 @@ export async function generateTischkarteText(
       schema: TischkarteTextSchema,
       system: SYSTEM_PROMPTS[lang],
       prompt: userPrompt,
-      temperature: 0.6,
+      temperature: 0.75,
       providerOptions: {
         gateway: {
           tags: [
@@ -534,7 +746,7 @@ export async function generateTischkarteText(
     })
 
     lastResult = result.object
-    const check = hasForbiddenContent(lastResult, lang)
+    const check = hasForbiddenContent(lastResult, lang, input.guestName)
     if (check.ok) {
       return lastResult
     }
