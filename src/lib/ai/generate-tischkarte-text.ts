@@ -10,9 +10,11 @@ import { z } from "zod"
 import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
 // ──────────────────────────────────────────────────────────────
-// Model
+// Model — Sonnet 4.6 (smarter, follows instructions more strictly than Haiku)
+// Upgrade from Haiku 4.5 after repeated failures to honor the rule-set
+// (using "die Dakota" as location, KI-floskeln leaking through).
 // ──────────────────────────────────────────────────────────────
-const TEXT_MODEL = "anthropic/claude-haiku-4.5"
+const TEXT_MODEL = "anthropic/claude-sonnet-4.6"
 
 // ──────────────────────────────────────────────────────────────
 // Output shape
@@ -124,10 +126,21 @@ const DE_STRUCTURAL_PATTERNS: RegExp[] = [
   /\bbodenständig\b/i,
   /\bwarme\s+Stube\b/i,
   /\beingekuschelt\b/i,
+  /\beingebettet\s+zwischen\b/i,
   /\bLass\s+dich\s+fallen\b/i,
   /\bhier\s+zu\s+Hause\s+fühlen\b/i,
-  /\bsymbol\s+für\s+Pionier/i,
-  /\blegend(ären|äres)\s+Flugzeug/i,
+  /\bsymbol\s+für\b/i,
+  /\blegend[äa]r\w*\s+Flugzeug\w*/i,
+  /\bbei\s+guten\s+Freunden\b/i,
+  /\btr[aä]gt\s+den\s+Namen\s+ein/i,
+  /\bganze\s+Schönheit\s+zeigt\b/i,
+  /\bein\s+Ort\s+für\s+Menschen\b/i,
+  /\bdurchzuatmen\b/i,
+  /\bwie\s+bei\s+guten\s+Freunden\b/i,
+  /\bnach\s+getaner\s+Arbeit\b/i,
+  /\bKrieg.*Symbol/i,
+  /\bZweiten\s+Weltkrieg\b/i,
+  /\ballem\s+voran\b/i,
 ]
 
 // Address-form guard for DE: if the model writes "Lieber Herrmann" when the
@@ -205,6 +218,10 @@ function hasForbiddenContent(
 
 const SYSTEM_PROMPTS: Record<TischkartenLanguage, string> = {
   de: `Du schreibst persönliche, handschriftlich wirkende Willkommens-Texte für Tischkarten in der Air Lounge — dem Restaurant im Hotel Dakota in Meiringen (Amthausgasse 2), Berner Oberland, Schweiz.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WICHTIG: Die folgenden Regeln sind absolut. Ein einziger Verstoß macht deine Antwort unbrauchbar. Lies sie aufmerksam durch, bevor du schreibst, und prüfe dein Ergebnis vor Abgabe gegen die GUT- und SCHLECHT-Beispiele am Ende.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ═══ HAUSREGEL — AIR LOUNGE STEHT IMMER VORNE ═══
 - Das Restaurant heißt "Air Lounge" — dieser Name wird in JEDEM Text mindestens einmal konkret verwendet
@@ -293,7 +310,48 @@ STATT DESSEN: konkrete Beobachtungen, Sinnesdetails, kleine Gesten
 - "unser Platz mitten in Meiringen"
 
 ═══ LÄNGE ═══
-Drei Absätze, jeder 2–4 Sätze. Kompakt, lesbar, leise.`,
+Drei Absätze, jeder 2–4 Sätze. Kompakt, lesbar, leise.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BEISPIELE — lerne an diesen Kontrasten
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+◆ GUT (Gast: "Herrmann" als Nachname, 2 Personen, Sommerabend)
+
+Titel: "Willkommen, Herr Herrmann"
+
+Absatz 1: "Schön, dass Sie zu zweit den Weg zu uns in die Air Lounge gefunden haben. Wir haben Ihnen einen Platz reserviert, an dem das späte Sommerlicht besonders warm hereinfällt — einer dieser Abende, an denen es erst nach zehn richtig dunkel wird."
+
+Absatz 2: "Unser Haus liegt mitten in Meiringen, an der Amthausgasse zwischen Kirche und Dorfbach. Von draußen hört man gelegentlich das Rauschen der Aare. Der Name erinnert an die alte DC-3, aber das sind Geschichten für einen anderen Abend."
+
+Absatz 3: "Einen feinen Abend Ihnen beiden. Wir sind da, wenn Sie uns brauchen."
+
+Warum gut:
+- "Herr Herrmann" (nicht "Lieber Herrmann")
+- "Air Lounge" steht an zentraler Stelle
+- Sommer-Detail konkret ("spätes Sommerlicht", "nach zehn richtig dunkel")
+- Dakota/DC-3 nur beiläufig in Absatz 2
+- Keine Floskeln, konkrete Sinnes-Details
+- Sie-Form (weil Geschäftsessen-Typ angenommen oder formeller Nachname)
+
+◆ SCHLECHT (dieselben Eckdaten) — so NICHT:
+
+Titel: "Lieber Herrmann"
+Absatz 1: "Willkommen in der Dakota. Wir freuen uns, dass du heute Abend zu uns kommst."
+Absatz 2: "Die Dakota trägt den Namen eines legendären Flugzeugs aus dem Zweiten Weltkrieg, einem Symbol für Pioniergeist und Abenteuer. Unser Haus steht mitten im Dorf, eingebettet zwischen Reichenbachfall und Aareschlucht, dort wo das Haslital seine ganze Schönheit zeigt."
+Absatz 3: "Lass dich fallen und genieße den Abend. Wir hoffen, dass du dich hier wie bei guten Freunden fühlst."
+
+Fehler:
+- "Lieber Herrmann" (Nachname als Vorname behandelt)
+- "Willkommen in der Dakota" (Dakota als Ort statt Air Lounge)
+- "Die Dakota trägt den Namen…" (Dakota als Subjekt des Absatzes)
+- "legendären Flugzeugs", "Symbol für Pioniergeist und Abenteuer", "Zweiter Weltkrieg" — alles Floskeln
+- "eingebettet zwischen", "seine ganze Schönheit zeigt" — KI-Prosa
+- "Lass dich fallen", "bei guten Freunden fühlst" — Standard-Floskeln
+- Kein Sommer-Detail
+- "Air Lounge" kommt gar nicht vor
+
+Dein Text muss wie das GUT-Beispiel klingen, nie wie das SCHLECHT-Beispiel.`,
 
   en: `You write personal welcome cards for guests of the Air Lounge — the restaurant inside Hotel Dakota in Meiringen (Amthausgasse 2), Bernese Oberland, Switzerland.
 
@@ -717,7 +775,7 @@ export async function generateTischkarteText(
 
   const baseUserPrompt = userPromptParts.join("\n")
 
-  const MAX_ATTEMPTS = 3
+  const MAX_ATTEMPTS = 4
   let lastResult: GeneratedTischkarteText | null = null
   let lastReason: string | undefined
 
@@ -732,7 +790,7 @@ export async function generateTischkarteText(
       schema: TischkarteTextSchema,
       system: SYSTEM_PROMPTS[lang],
       prompt: userPrompt,
-      temperature: 0.75,
+      temperature: 0.5,
       providerOptions: {
         gateway: {
           tags: [
@@ -753,13 +811,15 @@ export async function generateTischkarteText(
     lastReason = check.reason
   }
 
-  // Both attempts violated the guards. Return the last result but log so we notice drift.
-  // (We never throw: the card is better than no card — downstream can manual-edit.)
-  if (process.env.NODE_ENV !== "production") {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[generateTischkarteText] Returning output that failed guard after ${MAX_ATTEMPTS} attempts: ${lastReason}`
-    )
-  }
-  return lastResult as GeneratedTischkarteText
+  // All attempts violated the guards. Throw so the API returns a 500 and the
+  // user knows to retry — this is much better than silently surfacing a
+  // broken card.
+  // eslint-disable-next-line no-console
+  console.error(
+    `[generateTischkarteText] All ${MAX_ATTEMPTS} attempts failed guard. Last reason: ${lastReason}`
+  )
+  throw new Error(
+    `Tischkarten-Text konnte nach ${MAX_ATTEMPTS} Versuchen nicht in Dakota-Qualitaet erstellt werden. ` +
+      `Grund: ${lastReason ?? "unbekannt"}. Bitte erneut versuchen.`
+  )
 }
