@@ -8,42 +8,144 @@ import type { TischkartenOccasion } from "@/types/database"
 export const maxDuration = 120
 
 // ──────────────────────────────────────────────────────────────
-// Occasion-specific illustration prompts — each occasion gets a
-// distinct visual scene so cards look truly different.
+// Scene pools per occasion — each generation picks a random scene so
+// successive cards for the same occasion look visibly different.
+//
+// IMPORTANT: No hangar, no airfield, no runway, no airport imagery.
+// The Air Lounge is the restaurant inside Hotel Dakota in the village
+// centre of Meiringen (Amthausgasse 2) — alpine village atmosphere,
+// NOT an airport setting.
 // ──────────────────────────────────────────────────────────────
-const OCCASION_SCENE: Record<TischkartenOccasion, { title: string; hint: string }> = {
-  birthday: {
-    title: "Festive birthday table setting with candles and decorations",
-    hint: "A warm birthday scene: lit candles on a rustic cake, small wrapped gifts, wildflowers. Celebratory but intimate, alpine restaurant atmosphere.",
-  },
-  anniversary: {
-    title: "Romantic anniversary dinner setting for two",
-    hint: "An elegant romantic scene: two wine glasses, a single rose, soft candlelight reflected on polished wood. Intimate and warm, not kitschy.",
-  },
-  wedding: {
-    title: "Elegant wedding celebration table with champagne",
-    hint: "A refined wedding celebration: champagne flutes, delicate floral arrangement with alpine flowers, subtle gold accents. Festive yet tasteful.",
-  },
-  family: {
-    title: "Warm family gathering around a large wooden table",
-    hint: "A cozy family scene: a generously set large table, shared dishes, bread basket, warm lighting. Multiple place settings suggesting togetherness.",
-  },
-  business: {
-    title: "Professional business dinner setting in alpine restaurant",
-    hint: "A polished business setting: crisp napkins, mineral water, a notepad beside the plate. Professional yet inviting, the hangar architecture visible.",
-  },
-  none: {
-    title: "Welcome scene at the Dakota Air Lounge hangar restaurant",
-    hint: "The Dakota atmosphere: warm hangar interior, a beautifully set table awaiting guests, soft light falling through large windows onto alpine wood.",
-  },
+
+type Scene = { title: string; hint: string }
+
+const OCCASION_SCENES: Record<TischkartenOccasion, Scene[]> = {
+  birthday: [
+    {
+      title: "Hand-drawn birthday table scene with a single lit candle on a small cake",
+      hint: "A warm intimate birthday moment: one lit candle on a small rustic cake, wildflowers beside it, soft alpine restaurant atmosphere. Ink and watercolor wash.",
+    },
+    {
+      title: "Birthday greeting scene with wildflowers and a handwritten card",
+      hint: "A quiet birthday gesture: a small bouquet of alpine wildflowers, a folded handwritten card, a wooden table surface. Calm, intimate, not festive-loud.",
+    },
+    {
+      title: "Celebration scene with sparkling wine and small gift",
+      hint: "Two champagne coupes gently touching, a small wrapped gift with twine, ink-drawn composition on warm wood. Celebratory but restrained.",
+    },
+    {
+      title: "Birthday cake slice on a porcelain plate with a single candle",
+      hint: "A single slice of layered cake on a delicate porcelain plate, one small lit candle, a silver fork beside it. Magazine-cover cropped close.",
+    },
+  ],
+  anniversary: [
+    {
+      title: "Anniversary dinner setting for two with a single rose",
+      hint: "Two wine glasses across a wooden table, a single rose, soft candlelight reflected on polished wood. Intimate, warm, not kitschy.",
+    },
+    {
+      title: "Anniversary toast with red wine and linked rings motif",
+      hint: "Two hands raising red wine glasses in a toast gesture, linen napkins below, muted warm palette. Line-art with partial watercolor.",
+    },
+    {
+      title: "Anniversary table with candle between two place settings",
+      hint: "A single tall candle between two place settings, polished flatware, a folded linen napkin, alpine wood surface. Editorial minimalism.",
+    },
+    {
+      title: "Two wine glasses beside an aged leather-bound book",
+      hint: "An aged leather-bound book next to two wine glasses, suggesting years shared. A dried flower as a bookmark. Quiet, nostalgic.",
+    },
+  ],
+  wedding: [
+    {
+      title: "Elegant wedding toast with champagne flutes and alpine wildflowers",
+      hint: "Champagne flutes rising together, a delicate bouquet of alpine wildflowers beside them, linen tablecloth. Festive yet tasteful.",
+    },
+    {
+      title: "Wedding table with tiered cake and delicate florals",
+      hint: "A small multi-tier wedding cake with subtle floral decoration, alpine wildflowers around the base, soft watercolor palette.",
+    },
+    {
+      title: "Wedding place setting with calligraphy name card and rose",
+      hint: "A place setting with a hand-lettered name card, a single white rose, polished silver, crisp linen. Refined, intimate.",
+    },
+    {
+      title: "Interlocked wedding rings on an open linen napkin",
+      hint: "Two plain wedding rings resting on an open folded linen napkin, a sprig of eucalyptus beside them. Minimalist, quiet.",
+    },
+  ],
+  family: [
+    {
+      title: "Large family table set with shared dishes and bread basket",
+      hint: "A generously set long wooden table, several place settings, a woven bread basket at the centre, shared platters. Warm togetherness.",
+    },
+    {
+      title: "Hands passing a serving dish across a family table",
+      hint: "Two pairs of hands passing a rustic ceramic serving dish, wooden spoons, a pitcher of water nearby. Everyday warmth.",
+    },
+    {
+      title: "Family-style soup tureen with ladles and multiple bowls",
+      hint: "A central soup tureen steaming gently, a wooden ladle, several ceramic bowls around it. Homely and generous.",
+    },
+    {
+      title: "Children's drawing beside the adult place settings",
+      hint: "A crayon drawing placed beside adult cutlery, a glass of water with a striped paper straw, warm lamplight hinted. Tender family detail.",
+    },
+  ],
+  business: [
+    {
+      title: "Professional business dinner setting with notepad beside plate",
+      hint: "Crisp white napkin folded precisely, mineral water glass, a closed leather notepad with a pen. Alpine wooden table surface. Polished, calm.",
+    },
+    {
+      title: "Business lunch with espresso cup and leather portfolio",
+      hint: "An espresso cup on a saucer, a closed leather portfolio, a fountain pen. Early afternoon light suggested. Understated professional.",
+    },
+    {
+      title: "Two water glasses across a clean business table",
+      hint: "Two sparkling water glasses across from each other, linen napkins folded, cutlery placed precisely. Minimal, serious, respectful.",
+    },
+    {
+      title: "Business dinner table with single orchid and menu card",
+      hint: "A single white orchid stem in a narrow vase, a closed menu card, a wine glass set for tasting. Quietly refined.",
+    },
+  ],
+  none: [
+    {
+      title: "Welcome table in the Air Lounge with bread basket and candle",
+      hint: "A beautifully set table in an alpine village restaurant: a woven bread basket, a lit candle, a small herb sprig, soft window light suggested. Wood panelling hinted.",
+    },
+    {
+      title: "Wine glasses and bread on a wooden table with window light",
+      hint: "Two wine glasses and a sliced rustic loaf on a wooden surface, a linen napkin, warm daylight falling from the side. Village-inn atmosphere, NOT hangar or airport.",
+    },
+    {
+      title: "Alpine tea service with herbal sprigs and honey jar",
+      hint: "A ceramic teapot, two small cups, a honey jar with a wooden dipper, fresh herb sprigs. Cozy, quiet, grounded in Meiringen village warmth.",
+    },
+    {
+      title: "Mountain view through a window with a cup of coffee in foreground",
+      hint: "A coffee cup and saucer in the foreground, a window behind it framing the Haslital mountains with loose line-art peaks. Soft watercolor sky. Arrival, rest.",
+    },
+    {
+      title: "Open recipe book beside a small vase of alpine wildflowers",
+      hint: "An open handwritten recipe book, a small glass vase with alpine wildflowers, a wooden spoon. Restaurant-kitchen warmth, editorial crop.",
+    },
+  ],
+}
+
+function pickScene(occasion: TischkartenOccasion): Scene {
+  const pool = OCCASION_SCENES[occasion]
+  const idx = Math.floor(Math.random() * pool.length)
+  return pool[idx]
 }
 
 /**
  * POST /api/tischkarten/[id]/generate-illustration
  *
  * Generates an occasion-specific KI illustration for a Tischkarte.
- * Each occasion (birthday, wedding, business, etc.) gets a distinct
- * visual scene — no more generic "house" images for everything.
+ * Each call picks a fresh random scene from the pool so re-generating
+ * the image produces a visibly different illustration.
  */
 export async function POST(
   request: NextRequest,
@@ -80,7 +182,7 @@ export async function POST(
       )
     }
 
-    // 2. Source photo
+    // 2. Source photo (image-to-image when the user uploaded a reference)
     let sourcePhoto: Uint8Array | null = null
     let sourcePhotoMediaType: string | null = null
     if (file && file.size > 0) {
@@ -89,12 +191,18 @@ export async function POST(
       sourcePhotoMediaType = file.type || "image/jpeg"
     }
 
-    // 3. Build occasion-specific prompt
+    // 3. Build occasion-specific prompt with a RANDOM scene for variety
     const occasion = (tischkarte.occasion as TischkartenOccasion) || "none"
-    const scene = OCCASION_SCENE[occasion]
+    const scene = pickScene(occasion)
+
+    // Anti-hangar guard appended to every prompt so the image model can't drift
+    // back to airport imagery even when the story text mentions "Dakota".
+    const LOCATION_GUARDRAIL =
+      "SETTING: alpine village restaurant in Meiringen (Berner Oberland). NEVER depict a hangar, airport, airfield, runway, airplane, aircraft or aviation scenery. The restaurant is inside Hotel Dakota in the village centre — cozy wood-panelled inn, NOT an aircraft hangar."
 
     const combinedHint = [
       scene.hint,
+      LOCATION_GUARDRAIL,
       tischkarte.custom_hint,
       modalHint,
     ]
@@ -156,6 +264,7 @@ export async function POST(
       path: fileName,
       mode: result.mode,
       mediaType: result.mediaType,
+      scene: scene.title,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error"
