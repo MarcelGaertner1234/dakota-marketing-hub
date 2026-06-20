@@ -12,6 +12,7 @@
 import { generateObject } from "ai"
 import { z } from "zod"
 import type { PlatformType } from "@/types/database"
+import { DAKOTA_ENTITY, findForbiddenTerms } from "./brand-guard"
 
 // Verified against https://ai-gateway.vercel.sh/v1/models — slug uses DOT.
 const TEXT_MODEL = "anthropic/claude-haiku-4.5"
@@ -32,7 +33,7 @@ const SocialCaptionSchema = z.object({
     .min(3)
     .max(10)
     .describe(
-      "Hashtags ohne #-Zeichen, nur die Wörter. Lokal relevant (meiringen, berneroberland), markenspezifisch (dakotameiringen, hangarmeiringen) und thematisch passend zum Post."
+      "Hashtags ohne #-Zeichen, nur die Wörter. Lokal relevant (meiringen, berneroberland), markenspezifisch (dakotameiringen, hoteldakota) und thematisch passend zum Post. NIE 'hangar' oder Flug-Begriffe."
     ),
 })
 
@@ -41,13 +42,15 @@ export type GeneratedSocialCaption = z.infer<typeof SocialCaptionSchema>
 // ──────────────────────────────────────────────────────────────
 // Voice / System Prompt — Dakota voice + plattformspezifische Tonalität
 // ──────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `Du schreibst Social Media Captions für das Dakota Air Lounge — ein Restaurant in einem alten Flugzeug-Hangar in Meiringen, Berner Oberland, Schweiz.
+const SYSTEM_PROMPT = `Du schreibst Social Media Captions für das Dakota Air Lounge — das Restaurant im Hotel Dakota, mitten im Dorfkern von Meiringen, Berner Oberland, Schweiz.
+
+${DAKOTA_ENTITY.de}
 
 DIE STIMME DAKOTA (gilt für ALLE Plattformen):
 - Warm, persönlich, nahbar — wie ein Brief von guten Freunden
 - Schweizerisches Hochdeutsch, NIE Mundart, nie Anglizismen
 - Klar und schlicht — keine Floskeln, keine Marketing-Sprache, keine Superlative
-- Lokal verankert: Meiringen, Reichenbachfall, Berner Oberland, der alte Hangar, das Flugzeug "Dakota"
+- Lokal verankert: Meiringen, Reichenbachfall, Aareschlucht, Berner Oberland
 - Die Crew ist eine Familie, nicht ein "Service-Team"
 - Keine Übertreibungen ("unvergesslich", "einzigartig", "Highlight")
 - Keine standardisierten Floskeln ("Wir freuen uns auf euren Besuch")
@@ -61,7 +64,7 @@ INSTAGRAM:
 - Maximal 800 Zeichen Caption
 - 5-8 Hashtags
 - Visuell-zuerst-Denken: das Bild trägt, der Text ergänzt
-- Beispiel-Hook: "Sonntagmorgen im Hangar." oder "Zwölf warme Eierspeisen."
+- Beispiel-Hook: "Sonntagmorgen in Meiringen." oder "Zwölf warme Eierspeisen."
 
 FACEBOOK:
 - Format: 2-4 längere Absätze
@@ -76,7 +79,7 @@ TIKTOK:
 - Hook in Zeile 1 muss in den ersten 3 Sekunden funktionieren
 - 3-5 trendige Hashtags die das Thema präzise treffen
 - Konversationeller, jugendlicher Ton — aber keine Überdrehtheit
-- Beispiel: "Wir haben einen alten Hangar in einen Brunch-Tempel verwandelt."
+- Beispiel: "Sonntags wird das Dakota zum Brunch-Tempel."
 
 WAS DU NIE TUN DARFST:
 - Keine Aufzählung von Gerichten oder Werbung
@@ -147,24 +150,46 @@ export async function generateSocialCaption(
 
   const userPrompt = userPromptParts.join("\n")
 
-  const result = await generateObject({
-    model: TEXT_MODEL,
-    schema: SocialCaptionSchema,
-    system: SYSTEM_PROMPT,
-    prompt: userPrompt,
-    temperature: 0.85,
-    providerOptions: {
-      gateway: {
-        tags: [
-          "feature:social-caption",
-          `platform:${input.platform}`,
-          ...(input.conceptName
-            ? [`concept:${input.conceptName.toLowerCase().replace(/\s+/g, "-")}`]
-            : []),
-        ],
-      },
-    },
-  })
+  const tags = [
+    "feature:social-caption",
+    `platform:${input.platform}`,
+    ...(input.conceptName
+      ? [`concept:${input.conceptName.toLowerCase().replace(/\s+/g, "-")}`]
+      : []),
+  ]
 
-  return result.object
+  // Generate, then guard against the "Hangar/Flugfeld" entity drift. Captions
+  // are German-only and reviewed by Marcel before publishing, so on repeated
+  // drift we log + return the last attempt rather than failing the request.
+  const MAX_ATTEMPTS = 3
+  let lastObject: GeneratedSocialCaption | null = null
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const system =
+      attempt === 0
+        ? SYSTEM_PROMPT
+        : `${SYSTEM_PROMPT}\n\nACHTUNG — der letzte Versuch enthielt verbotene Begriffe (Flugfeld/Hangar/Flughafen). Das Dakota steht MITTEN IM DORFKERN von Meiringen, NICHT in einem Hangar. Schreibe Caption und Hashtags komplett neu, ohne jede Anspielung auf Hangar, Flugfeld, Flughafen oder Piste.`
+
+    const result = await generateObject({
+      model: TEXT_MODEL,
+      schema: SocialCaptionSchema,
+      system,
+      prompt: userPrompt,
+      temperature: 0.85,
+      providerOptions: { gateway: { tags } },
+    })
+
+    lastObject = result.object
+    const hits = [
+      ...findForbiddenTerms(result.object.caption, "de"),
+      ...result.object.hashtags.flatMap((h) => findForbiddenTerms(h, "de")),
+    ]
+    if (hits.length === 0) return result.object
+  }
+
+  console.warn(
+    "[generate-social-caption] forbidden entity terms persisted after",
+    MAX_ATTEMPTS,
+    "attempts — returning last attempt for manual review"
+  )
+  return lastObject!
 }

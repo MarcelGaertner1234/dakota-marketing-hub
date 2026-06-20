@@ -8,6 +8,7 @@
 import { generateObject } from "ai"
 import { z } from "zod"
 import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
+import { FORBIDDEN_ENTITY_TERMS as FORBIDDEN_TERMS } from "./brand-guard"
 
 // ──────────────────────────────────────────────────────────────
 // Model — Sonnet 4.6 (smarter, follows instructions more strictly than Haiku)
@@ -47,43 +48,10 @@ const TischkarteTextSchema = z.object({
 export type GeneratedTischkarteText = z.infer<typeof TischkarteTextSchema>
 
 // ──────────────────────────────────────────────────────────────
-// Forbidden terms (per language). If any appear in the output, we retry.
+// Forbidden terms (per language) — now sourced from the shared brand-guard so
+// every generator shares one source of truth. If any appear, we retry.
+// (imported above as FORBIDDEN_TERMS; usage below is unchanged)
 // ──────────────────────────────────────────────────────────────
-const FORBIDDEN_TERMS: Record<TischkartenLanguage, RegExp[]> = {
-  de: [
-    /flugfeld/i,
-    /flughafen/i,
-    /flugplatz/i,
-    /\brollbahn\b/i,
-    /\blandebahn\b/i,
-    /\bpiste\b/i,
-    /\bhangar\b/i,
-    /\bterminal\b/i,
-  ],
-  en: [
-    /\bairfield\b/i,
-    /\bairport\b/i,
-    /\brunway\b/i,
-    /\bhangar\b/i,
-    /\baerodrome\b/i,
-    /\btarmac\b/i,
-  ],
-  fr: [
-    /terrain d['’ ]aviation/i,
-    /\baérodrome\b/i,
-    /\baeroport\b/i,
-    /\baéroport\b/i,
-    /\bpiste\b/i,
-    /\bhangar\b/i,
-  ],
-  it: [
-    /campo d['’ ]aviazione/i,
-    /\baeroporto\b/i,
-    /\bpista\b/i,
-    /\bhangar\b/i,
-    /\baerodromo\b/i,
-  ],
-}
 
 // Heuristic check for ASCII-substituted German umlauts in the output.
 // Hits common GastroKalk-style legacy codebases; we want the AI output to use proper ä/ö/ü/ß.

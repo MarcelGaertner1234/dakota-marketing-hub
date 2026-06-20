@@ -8,6 +8,7 @@ import {
   DATE_LOCALES,
 } from "@/lib/ai/generate-tischkarte-text"
 import { generateStoryIllustration } from "@/lib/ai/generate-illustration"
+import { LOCATION_GUARDRAIL } from "@/lib/ai/brand-guard"
 import { revalidatePath } from "next/cache"
 import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
@@ -33,11 +34,11 @@ const OCCASION_SCENE: Record<TischkartenOccasion, { title: string; hint: string 
   },
   business: {
     title: "Professional business dinner setting in alpine restaurant",
-    hint: "A polished business setting: crisp napkins, mineral water, a notepad beside the plate. Professional yet inviting, the hangar architecture visible.",
+    hint: "A polished business setting: crisp napkins, mineral water, a notepad beside the plate. Professional yet inviting, warm wood-panelled village-inn interior.",
   },
   none: {
-    title: "Welcome scene at the Dakota Air Lounge hangar restaurant",
-    hint: "The Dakota atmosphere: warm hangar interior, a beautifully set table awaiting guests, soft light falling through large windows onto alpine wood.",
+    title: "Welcome scene at the Dakota Air Lounge in the village centre of Meiringen",
+    hint: "The Dakota atmosphere: a warm wood-panelled village-inn interior, a beautifully set table awaiting guests, soft light falling through large windows onto alpine wood.",
   },
 }
 
@@ -214,7 +215,9 @@ export async function createTischkarte(formData: FormData) {
   after(async () => {
     try {
       const scene = OCCASION_SCENE[occasion]
-      const combinedHint = [scene.hint, customHint].filter(Boolean).join(" — ")
+      const combinedHint = [scene.hint, LOCATION_GUARDRAIL, customHint]
+        .filter(Boolean)
+        .join(" — ")
 
       const result = await generateStoryIllustration({
         category: "house",
