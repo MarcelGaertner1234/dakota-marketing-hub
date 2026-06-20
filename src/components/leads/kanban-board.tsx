@@ -26,7 +26,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Users, GripVertical, ArrowRight } from "lucide-react"
-import { updateLeadStatus, addLeadActivity } from "@/lib/actions/leads"
+import { updateLeadStatus } from "@/lib/actions/leads"
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants"
 import type { LeadStatus } from "@/types/database"
 import { useRouter } from "next/navigation"
@@ -317,34 +317,18 @@ export function KanbanBoard({
 
     setPendingMove(null)
 
-    // Server update
+    // Server update — the status_change activity is now logged atomically
+    // inside updateLeadStatus (selectedMember = who made the contact), so the
+    // history can no longer end up with a gap.
     startTransition(async () => {
       try {
-        await updateLeadStatus(leadId, toStatus)
+        await updateLeadStatus(leadId, toStatus, selectedMember || null)
       } catch {
-        // Rollback only on status update failure
+        // Rollback optimistic update on failure
         setLeads((prev) =>
           prev.map((l) => (l.id === leadId ? { ...l, status: fromStatus } : l))
         )
         return
-      }
-
-      // Log activity — non-fatal, don't roll back status on failure
-      try {
-        const formData = new FormData()
-        formData.set("lead_id", leadId)
-        formData.set("activity_type", "status_change")
-        formData.set(
-          "description",
-          `Status geändert: ${LEAD_STATUS_LABELS[fromStatus]} → ${LEAD_STATUS_LABELS[toStatus]}`
-        )
-        if (selectedMember) {
-          formData.set("contacted_by", selectedMember)
-        }
-        await addLeadActivity(formData)
-      } catch {
-        // Activity log failed — status was already updated, no rollback
-        console.error("Failed to log activity for lead status change")
       }
 
       router.refresh()

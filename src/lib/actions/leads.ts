@@ -3,6 +3,7 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { LEAD_STATUS_LABELS } from "@/lib/constants"
 
 export async function getLeads() {
   const supabase = createServerClient()
@@ -120,13 +121,64 @@ export async function updateLead(
   }
 }
 
-export async function updateLeadStatus(id: string, status: string) {
+export async function updateLeadStatus(
+  id: string,
+  status: string,
+  contactedBy?: string | null
+) {
   const supabase = createServerClient()
-  const { error } = await supabase
+
+  // Validate the target against the known status set (not an arbitrary string).
+  if (!(status in LEAD_STATUS_LABELS)) {
+    throw new Error(`Ungültiger Lead-Status: ${status}`)
+  }
+
+  // Load the current status so the transition is recorded server-side together
+  // with the change — replaces the old client-side "non-fatal" logging that
+  // could leave the contact history with gaps (P1 #3).
+  const { data: current, error: loadErr } = await supabase
+    .from("leads")
+    .select("status")
+    .eq("id", id)
+    .single()
+  if (loadErr) throw loadErr
+
+  const oldStatus = (current?.status as string | null) ?? null
+  if (oldStatus === status) return // no-op move — don't write a phantom entry
+
+  const { error: updateErr } = await supabase
     .from("leads")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
-  if (error) throw error
+  if (updateErr) throw updateErr
+
+  // Auto-assign the current open round (mirrors addLeadActivity).
+  const { data: currentRound } = await supabase
+    .from("lead_rounds")
+    .select("id")
+    .eq("lead_id", id)
+    .is("ended_at", null)
+    .order("round_number", { ascending: false })
+    .limit(1)
+    .single()
+
+  const labels = LEAD_STATUS_LABELS as Record<string, string>
+  const { error: logErr } = await supabase.from("lead_activities").insert({
+    lead_id: id,
+    activity_type: "status_change",
+    description: `Status geändert: ${labels[oldStatus ?? ""] ?? oldStatus ?? "—"} → ${labels[status]}`,
+    contacted_by: contactedBy ?? null,
+    round_id: currentRound?.id ?? null,
+  })
+  if (logErr) {
+    // Compensate so we never persist a status change without its log entry.
+    await supabase
+      .from("leads")
+      .update({ status: oldStatus, updated_at: new Date().toISOString() })
+      .eq("id", id)
+    throw logErr
+  }
+
   revalidatePath("/leads")
   revalidatePath(`/leads/${id}`)
 }

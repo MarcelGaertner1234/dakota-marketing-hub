@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { updateLeadStatus, addLeadActivity } from "@/lib/actions/leads"
+import { updateLeadStatus } from "@/lib/actions/leads"
 import { LEAD_STATUS_LABELS } from "@/lib/constants"
 import type { LeadStatus } from "@/types/database"
 
@@ -32,23 +32,12 @@ export function LeadStatusSelect({
     setError(null)
     startTransition(async () => {
       try {
+        // The status_change activity is logged atomically inside updateLeadStatus.
         await updateLeadStatus(leadId, newStatus)
       } catch (e) {
         setOptimisticStatus(oldStatus)
         setError(e instanceof Error ? e.message : "Status-Update fehlgeschlagen")
         return
-      }
-      try {
-        const formData = new FormData()
-        formData.set("lead_id", leadId)
-        formData.set("activity_type", "status_change")
-        formData.set(
-          "description",
-          `Status geändert: ${LEAD_STATUS_LABELS[oldStatus]} → ${LEAD_STATUS_LABELS[newStatus]}`
-        )
-        await addLeadActivity(formData)
-      } catch {
-        // Activity log is non-fatal — status already persisted
       }
     })
   }

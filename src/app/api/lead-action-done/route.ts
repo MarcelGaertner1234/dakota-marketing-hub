@@ -62,11 +62,41 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServerClient()
+
+  // Load the current next_action so the completion can be recorded.
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("next_action")
+    .eq("id", leadId)
+    .single()
+
   const { error } = await supabase
     .from("leads")
     .update({ next_action: null, next_action_date: null, updated_at: new Date().toISOString() })
     .eq("id", leadId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Log the completion so clearing next_action leaves a trace in the contact
+  // history (previously it vanished without any entry). Non-fatal: the action
+  // already succeeded, a failed log must not 500 the request.
+  const { data: currentRound } = await supabase
+    .from("lead_rounds")
+    .select("id")
+    .eq("lead_id", leadId)
+    .is("ended_at", null)
+    .order("round_number", { ascending: false })
+    .limit(1)
+    .single()
+
+  await supabase.from("lead_activities").insert({
+    lead_id: leadId,
+    activity_type: "notiz",
+    description: lead?.next_action
+      ? `Nächster Schritt erledigt: ${lead.next_action}`
+      : "Nächster Schritt erledigt",
+    round_id: currentRound?.id ?? null,
+  })
+
   return NextResponse.json({ success: true })
 }
