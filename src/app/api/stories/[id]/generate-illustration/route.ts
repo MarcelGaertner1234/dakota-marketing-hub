@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateStoryIllustration } from "@/lib/ai/generate-illustration"
 import { rateLimit } from "@/lib/rate-limit"
+import { requireSameOriginOrSecret } from "@/lib/api-auth"
 import type { StoryCategory } from "@/types/database"
 
 // Image generation takes 10-30 seconds — extend the timeout generously.
@@ -27,6 +28,9 @@ export async function POST(
 ) {
   const rl = rateLimit(request, { scope: "ai-image", max: 10, windowMs: 60_000 })
   if (rl) return rl
+
+  const denied = requireSameOriginOrSecret(request)
+  if (denied) return denied
 
   try {
     const { id } = await ctx.params

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateSocialCaption } from "@/lib/ai/generate-social-caption"
 import { rateLimit } from "@/lib/rate-limit"
+import { requireSameOriginOrSecret } from "@/lib/api-auth"
 import type { PlatformType } from "@/types/database"
 
 // Text generation is fast (~2s) but allow some headroom.
@@ -31,6 +32,9 @@ export async function POST(
 ) {
   const rl = rateLimit(request, { scope: "ai-text", max: 20, windowMs: 60_000 })
   if (rl) return rl
+
+  const denied = requireSameOriginOrSecret(request)
+  if (denied) return denied
 
   try {
     const { postId } = await ctx.params

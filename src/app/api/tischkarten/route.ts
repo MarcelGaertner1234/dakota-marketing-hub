@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { z } from "zod"
 import { generateTischkarteText } from "@/lib/ai/generate-tischkarte-text"
+import { rateLimit } from "@/lib/rate-limit"
+import { requireSameOriginOrSecret } from "@/lib/api-auth"
 import type { TischkartenOccasion } from "@/types/database"
 
 // Text gen takes ~2s but allow headroom for KI cold-start
@@ -23,6 +26,21 @@ const OCCASION_LABELS: Record<TischkartenOccasion, string> = {
   wedding: "Hochzeit",
   none: "",
 }
+
+// Length caps bound the prompt-injection surface that flows into the KI prompt
+// (guest_name + custom_hint). occasion is validated against VALID_OCCASIONS
+// below, so a loose max here is enough.
+const createTischkarteSchema = z.object({
+  guest_name: z.string().trim().min(1).max(100),
+  occasion: z.string().max(40).optional().nullable(),
+  // Loose on purpose: the handler below normalises party_size via `> 0 ? : null`,
+  // matching the previous tolerant behaviour. The real prompt-injection vectors
+  // are the free-text fields (guest_name / custom_hint), which are length-capped.
+  party_size: z.number().max(100000).optional().nullable(),
+  reservation_date: z.string().max(40).optional().nullable(),
+  table_number: z.string().max(50).optional().nullable(),
+  custom_hint: z.string().max(500).optional().nullable(),
+})
 
 /**
  * Builds the offizieller-Schild Subtitle from the structural metadata.
@@ -79,18 +97,33 @@ function buildSubtitle(input: {
  *   5. Return the full row
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
+  const rl = rateLimit(request, { scope: "ai-text", max: 20, windowMs: 60_000 })
+  if (rl) return rl
 
-    const guestName = (body.guest_name as string)?.trim()
-    if (!guestName) {
+  const denied = requireSameOriginOrSecret(request)
+  if (denied) return denied
+
+  try {
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    }
+
+    const parsed = createTischkarteSchema.safeParse(rawBody)
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "guest_name is required" },
+        { error: "Invalid payload", issues: parsed.error.issues },
         { status: 400 }
       )
     }
+    const body = parsed.data
 
-    const occasionRaw = (body.occasion as string) || "none"
+    // guest_name is already trimmed + length-capped by zod
+    const guestName = body.guest_name
+
+    const occasionRaw = body.occasion || "none"
     const occasion: TischkartenOccasion = VALID_OCCASIONS.includes(
       occasionRaw as TischkartenOccasion
     )
@@ -102,9 +135,9 @@ export async function POST(request: NextRequest) {
         ? body.party_size
         : null
 
-    const reservationDate = (body.reservation_date as string) || null
-    const tableNumber = (body.table_number as string) || null
-    const customHint = (body.custom_hint as string) || null
+    const reservationDate = body.reservation_date || null
+    const tableNumber = body.table_number || null
+    const customHint = body.custom_hint || null
 
     // 1. Generate KI text
     const generated = await generateTischkarteText({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { rateLimit } from "@/lib/rate-limit"
+import { requireSameOriginOrSecret } from "@/lib/api-auth"
 
 const ALLOWED_BUCKETS = new Set([
   "concept-images",
@@ -30,6 +31,9 @@ function isSafePath(value: string): boolean {
 export async function GET(request: NextRequest) {
   const rl = rateLimit(request, { scope: "storage-list", max: 60, windowMs: 60_000 })
   if (rl) return rl
+
+  const denied = requireSameOriginOrSecret(request)
+  if (denied) return denied
 
   const bucket = request.nextUrl.searchParams.get("bucket") || "concept-images"
   const folder = request.nextUrl.searchParams.get("folder") || ""
@@ -72,6 +76,9 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const rl = rateLimit(request, { scope: "storage-delete", max: 30, windowMs: 60_000 })
   if (rl) return rl
+
+  const denied = requireSameOriginOrSecret(request)
+  if (denied) return denied
 
   let body: { bucket?: string; path?: string }
   try {

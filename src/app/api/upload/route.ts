@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { secureFileSuffix } from "@/lib/crypto-id"
+import { rateLimit } from "@/lib/rate-limit"
+import { requireSameOriginOrSecret } from "@/lib/api-auth"
 
 const ALLOWED_BUCKETS = new Set([
   "concept-images",
@@ -19,6 +21,12 @@ const ALLOWED_MIME_TYPES = new Set([
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(request, { scope: "upload", max: 30, windowMs: 60_000 })
+  if (rl) return rl
+
+  const denied = requireSameOriginOrSecret(request)
+  if (denied) return denied
+
   const formData = await request.formData()
   const file = formData.get("file") as File | null
   const rawBucket = (formData.get("bucket") as string) || "concept-images"

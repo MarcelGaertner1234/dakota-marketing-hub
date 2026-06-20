@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
 import { supabase } from "../supabase.js"
+import { internalHeaders } from "../http.js"
 
 // Production base URL — same convention as the public_url constants in
 // stories.ts. The KI generators run on the deployed Vercel functions
@@ -164,7 +165,7 @@ export function registerTischkartenTools(server: McpServer) {
       try {
         const res = await fetch(`${DAKOTA_BASE_URL}/api/tischkarten`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: internalHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(input),
         })
         const data = await res.json()
@@ -197,7 +198,7 @@ export function registerTischkartenTools(server: McpServer) {
         const id = await resolveTischkarte(id_or_guest)
         const res = await fetch(
           `${DAKOTA_BASE_URL}/api/tischkarten/${id}/regenerate-text`,
-          { method: "POST" }
+          { method: "POST", headers: internalHeaders() }
         )
         const data = await res.json()
         if (!res.ok) {
@@ -235,7 +236,7 @@ export function registerTischkartenTools(server: McpServer) {
         if (hint) formData.set("hint", hint)
         const res = await fetch(
           `${DAKOTA_BASE_URL}/api/tischkarten/${id}/generate-illustration`,
-          { method: "POST", body: formData }
+          { method: "POST", headers: internalHeaders(), body: formData }
         )
         const data = await res.json()
         if (!res.ok) {

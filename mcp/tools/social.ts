@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
 import { supabase } from "../supabase.js"
+import { internalHeaders } from "../http.js"
 
 export function registerSocialTools(server: McpServer) {
   // ── list_posts ──────────────────────────────────────────────
@@ -212,7 +213,7 @@ export function registerSocialTools(server: McpServer) {
         if (size) formData.set("size", size)
         const res = await fetch(
           `https://dakota-marketing-hub.vercel.app/api/social/${post_id}/generate-illustration`,
-          { method: "POST", body: formData }
+          { method: "POST", headers: internalHeaders(), body: formData }
         )
         const data = await res.json()
         if (!res.ok) {
@@ -253,7 +254,7 @@ export function registerSocialTools(server: McpServer) {
         if (hint) formData.set("hint", hint)
         const res = await fetch(
           `https://dakota-marketing-hub.vercel.app/api/social/${post_id}/generate-caption`,
-          { method: "POST", body: formData }
+          { method: "POST", headers: internalHeaders(), body: formData }
         )
         const data = await res.json()
         if (!res.ok) {

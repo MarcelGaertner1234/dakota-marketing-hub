@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
 import { supabase, resolveConcept } from "../supabase.js"
+import { internalHeaders } from "../http.js"
 
 // Helper: resolve event title/id to event UUID
 async function resolveEvent(titleOrId: string): Promise<string> {
@@ -427,7 +428,7 @@ export function registerStoryTools(server: McpServer) {
         if (hint) formData.set("hint", hint)
         const res = await fetch(
           `https://dakota-marketing-hub.vercel.app/api/stories/${id}/generate-illustration`,
-          { method: "POST", body: formData }
+          { method: "POST", headers: internalHeaders(), body: formData }
         )
         const data = await res.json()
         if (!res.ok) {

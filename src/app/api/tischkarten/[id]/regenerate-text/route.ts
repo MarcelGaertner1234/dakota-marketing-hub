@@ -7,6 +7,7 @@ import {
   DATE_LOCALES,
 } from "@/lib/ai/generate-tischkarte-text"
 import { rateLimit } from "@/lib/rate-limit"
+import { requireSameOriginOrSecret } from "@/lib/api-auth"
 import type { TischkartenOccasion, TischkartenLanguage } from "@/types/database"
 
 export const maxDuration = 60
@@ -66,6 +67,9 @@ export async function POST(
 ) {
   const rl = rateLimit(request, { scope: "ai-text", max: 20, windowMs: 60_000 })
   if (rl) return rl
+
+  const denied = requireSameOriginOrSecret(request)
+  if (denied) return denied
 
   try {
     const { id } = await ctx.params
