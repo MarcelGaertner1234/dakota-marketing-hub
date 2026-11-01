@@ -8,14 +8,14 @@ import { MonatTabelle } from "@/components/cockpit/monat-tabelle"
 import { StackedBars, TargetBars } from "@/components/cockpit/charts"
 import { getAnlaesse, getMonths, getSettings, getWochen } from "@/lib/actions/cockpit"
 import { berechneMonat, berechneZiel, chf, monatLabel, prozent, summeZiel } from "@/lib/cockpit/calc"
+import { todayZurich } from "@/lib/utils/today"
 
 export default async function CockpitPage() {
   const [settings, months, wochen, anlaesse] = await Promise.all([getSettings(), getMonths(), getWochen(), getAnlaesse()])
-  const heute = new Date()
-  const aktuellKey = `${heute.getFullYear()}-${String(heute.getMonth() + 1).padStart(2, "0")}-01`
+  const aktuellKey = todayZurich().slice(0, 7) + "-01"
   const plan = months.filter((m) => m.monat >= "2026-12-01")
   const cockpits = plan.map((m) => berechneMonat(m, wochen, anlaesse, settings))
-  const aktuell = cockpits.find((c) => c.monat === aktuellKey) ?? cockpits[0]
+  const aktuell = cockpits.find((c) => c.monat === aktuellKey) ?? cockpits.find((c) => c.monat > aktuellKey) ?? cockpits[0]
   const fokus = cockpits.filter((c) => c.monat >= "2026-12-01" && c.monat <= "2027-02-01")
   const ziel = berechneZiel(months.filter((m) => m.monat.startsWith("2027")), months.filter((m) => m.monat.startsWith("2026")), settings)
   const zielSum = summeZiel(ziel)

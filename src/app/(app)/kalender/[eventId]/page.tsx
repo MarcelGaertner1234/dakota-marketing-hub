@@ -15,7 +15,7 @@ export default async function EventDetailPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [event, concepts, teamMembers, linkedLeads]: [any, any[], any[], any[]] = await Promise.all([
     getEvent(eventId).catch(() => null),
-    getConcepts().catch(() => []),
+    getConcepts(true).catch(() => []),
     getTeamMembers().catch(() => []),
     getEventLeads(eventId).catch(() => []),
   ])

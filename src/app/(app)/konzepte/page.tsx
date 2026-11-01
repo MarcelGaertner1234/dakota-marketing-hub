@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { getConcepts } from "@/lib/actions/concepts"
+import { ConceptActiveToggle } from "@/components/konzepte/concept-active-toggle"
 
 const CONCEPT_COLORS: Record<string, string> = {
   afterwork: "#F59E0B",
@@ -24,7 +25,9 @@ function getConceptColor(slug: string): string {
 }
 
 export default async function KonzeptePage() {
-  const concepts = await getConcepts()
+  const alle = await getConcepts(true)
+  const concepts = alle.filter((c) => c.is_active)
+  const inaktiv = alle.filter((c) => !c.is_active)
 
   return (
     <div className="space-y-6">
@@ -98,6 +101,21 @@ export default async function KonzeptePage() {
           </Link>
         ))}
       </div>
+
+      {inaktiv.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400">Inaktiv ({inaktiv.length})</h2>
+          <p className="text-sm text-gray-400">Nicht mehr verfolgte Konzepte. Werden in Kalender-Formularen nicht angeboten, bleiben aber mit ihren Events erhalten.</p>
+          <div className="divide-y rounded-lg border bg-white/60 dark:bg-[#1E1915]">
+            {inaktiv.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2">
+                <Link href={`/konzepte/${c.id}`} className="min-w-0 truncate text-sm text-gray-600 hover:text-[#C5A572] dark:text-gray-300">{c.name}</Link>
+                <ConceptActiveToggle id={c.id} active={false} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

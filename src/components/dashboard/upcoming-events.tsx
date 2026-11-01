@@ -12,6 +12,7 @@ type EventItem = {
   id: string
   title: string
   start_date: string
+  end_date?: string | null
   start_time: string | null
   event_type: string
 }
@@ -47,7 +48,7 @@ export function UpcomingEvents({ events }: { events: EventItem[] }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{event.title}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {new Date(event.start_date).toLocaleDateString("de-CH", {
+                {event.end_date && event.end_date > event.start_date && "ab "}{new Date(event.start_date).toLocaleDateString("de-CH", {
                   weekday: "short",
                   day: "numeric",
                   month: "short",

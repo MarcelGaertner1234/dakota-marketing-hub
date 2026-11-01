@@ -18,9 +18,10 @@ import {
   BookOpen,
   Utensils,
   Gauge,
+  CheckSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { useTheme } from "next-themes"
 import { BRAND_ASSETS } from "@/lib/brand"
 
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cockpit", label: "Cockpit", icon: Gauge },
   { href: "/kalender", label: "Kalender", icon: Calendar },
+  { href: "/aufgaben", label: "Aufgaben", icon: CheckSquare },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/konzepte", label: "Konzepte", icon: Lightbulb },
   { href: "/stories", label: "Stories", icon: BookOpen },
@@ -40,23 +42,24 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  // true erst nach der Hydration, ohne setState im Effekt (Theme-Markup Server/Client gleich halten)
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
   const { resolvedTheme, setTheme } = useTheme()
+  const isDark = mounted && resolvedTheme === "dark"
 
   function cycleTheme() {
     setTheme(resolvedTheme === "dark" ? "light" : "dark")
   }
 
-  const themeLabel =
-    resolvedTheme === "dark" ? "Dunkel" : "Hell"
-
-  const ThemeIcon =
-    resolvedTheme === "dark" ? Moon : Sun
+  const themeLabel = isDark ? "Dunkel" : "Hell"
+  const ThemeIcon = isDark ? Moon : Sun
 
   return (
     <>
       {/* Mobile toggle */}
       <button
         onClick={() => setOpen(true)}
+        aria-label="Menü öffnen"
         className="fixed top-4 left-4 z-50 rounded-lg bg-[#2C2C2C] p-2 text-white shadow-lg md:hidden"
       >
         <Menu className="h-5 w-5" />
@@ -104,13 +107,13 @@ export function Sidebar() {
               </div>
             </div>
           </div>
-          <button onClick={() => setOpen(false)} className="md:hidden">
+          <button onClick={() => setOpen(false)} className="md:hidden" aria-label="Menü schliessen">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {NAV_ITEMS.map((item) => {
             const isActive =
               item.href === "/"
@@ -121,6 +124,7 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
@@ -144,7 +148,7 @@ export function Sidebar() {
             title={`Theme: ${themeLabel}`}
           >
             <ThemeIcon className="h-5 w-5 shrink-0" />
-            {resolvedTheme === "dark" ? "Zu Light wechseln" : "Zu Dark wechseln"}
+            {isDark ? "Zu Light wechseln" : "Zu Dark wechseln"}
           </button>
           <div>
             <p className="text-xs text-gray-500">Dakota Air Lounge</p>

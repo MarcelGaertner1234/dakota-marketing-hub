@@ -14,13 +14,20 @@ import { NextRequest, NextResponse } from "next/server"
 // is the real gate for the external (MCP) path. If INTERNAL_API_SECRET is unset,
 // the secret path is closed and only same-origin is allowed (fail-closed).
 
-const ALLOWED_HOSTS = new Set([
-  "dakota-marketing-hub.vercel.app",
-  "localhost:3000",
-  "localhost:3001",
-  "localhost:3002",
-  "127.0.0.1:3000",
-])
+const ALLOWED_HOSTS = new Set(
+  [
+    "dakota-marketing-hub.vercel.app",
+    "localhost:3000",
+    "localhost:3001",
+    "localhost:3002",
+    "localhost:3003",
+    "127.0.0.1:3000",
+    "127.0.0.1:3003",
+    process.env.VERCEL_URL,
+    process.env.VERCEL_BRANCH_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+  ].filter((h): h is string => !!h),
+)
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false

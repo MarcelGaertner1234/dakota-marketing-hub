@@ -47,10 +47,14 @@ export async function getSocialPost(id: string) {
   return data
 }
 
+const SOCIAL_UPDATABLE = new Set(["title", "caption", "hashtags", "platform", "post_type", "status", "scheduled_at", "published_at", "event_id", "concept_id", "series_id", "series_order", "assigned_to"])
+
 export async function updateSocialPost(id: string, data: Record<string, unknown>) {
   const supabase = createServerClient()
+  const safe: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(data)) if (SOCIAL_UPDATABLE.has(k)) safe[k] = v
   const { error } = await supabase.from("social_posts").update({
-    ...data,
+    ...safe,
     updated_at: new Date().toISOString(),
   }).eq("id", id)
   if (error) throw error

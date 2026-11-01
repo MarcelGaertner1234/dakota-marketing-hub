@@ -116,7 +116,7 @@ export function EventDetail({
   const daysUntilEvent = Math.ceil(
     (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   )
-  const isInLeadTime = now >= warningDate && (now < eventDate || now.toDateString() === eventDate.toDateString())
+  const isInLeadTime = (event.event_type === "own_event" || event.event_type === "concept_event") && now >= warningDate && (now < eventDate || now.toDateString() === eventDate.toDateString())
 
   function handleSave(formData: FormData) {
     startTransition(async () => {
@@ -270,6 +270,7 @@ export function EventDetail({
                     <option value="own_event">Eigenes Event</option>
                     <option value="local_event">Lokales Event</option>
                     <option value="concept_event">Konzept-Event</option>
+                    <option value="holiday">Feiertag / Ferien / Schliessung</option>
                   </select>
                 </div>
               </div>
@@ -413,6 +414,12 @@ export function EventDetail({
                       month: "long",
                       year: "numeric",
                     })}
+                    {event.end_date && event.end_date > event.start_date && (
+                      <>
+                        {" – "}
+                        {parseDateLocal(event.end_date).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
+                      </>
+                    )}
                   </p>
                 </div>
               </CardContent>

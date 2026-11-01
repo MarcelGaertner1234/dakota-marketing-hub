@@ -38,11 +38,34 @@ function getFirstDayOfMonth(year: number, month: number) {
   const day = new Date(year, month, 1).getDay()
   return day === 0 ? 6 : day - 1
 }
+/** Findet das Event an diesem Tag statt? (mehrtägig: start_date … end_date) */
+function occursOn(e: { start_date: string; end_date?: string | null }, dateStr: string): boolean {
+  const end = e.end_date && e.end_date >= e.start_date ? e.end_date : e.start_date
+  return e.start_date <= dateStr && dateStr <= end
+}
+/** Dauer in Tagen (1 = eintägig). Lange Einträge (Saison, Ferien) bekommen keine Tagespunkte, sonst ist jeder Tag voll. */
+function spanDays(e: { start_date: string; end_date?: string | null }): number {
+  if (!e.end_date || e.end_date <= e.start_date) return 1
+  return Math.round((parseDateLocal(e.end_date).getTime() - parseDateLocal(e.start_date).getTime()) / 86400000) + 1
+}
+const DOT_MAX_DAYS = 7
+function isHolidayItem(e: { id: string; event_type: EventType }): boolean {
+  return e.event_type === "holiday"
+}
+/** «2.–16. Nov.» für mehrtägige Einträge in der Monatsliste */
+function rangeLabel(e: { start_date: string; end_date?: string | null }): string {
+  const s = parseDateLocal(e.start_date)
+  if (!e.end_date || e.end_date <= e.start_date) return `${s.getDate()}.`
+  const en = parseDateLocal(e.end_date)
+  if (s.getMonth() === en.getMonth() && s.getFullYear() === en.getFullYear()) return `${s.getDate()}.–${en.getDate()}.`
+  return `${s.getDate()}.${s.getMonth() + 1}.–${en.getDate()}.${en.getMonth() + 1}.`
+}
 
 interface CalendarEvent {
   id: string
   title: string
   start_date: string
+  end_date?: string | null
   start_time?: string | null
   end_time?: string | null
   location?: string | null
@@ -79,9 +102,11 @@ function MonthGrid({
   const today = new Date()
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month
 
+  const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`
+  const monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`
   const monthItems = allItems.filter((e) => {
-    const [y, m] = e.start_date.split("-").map(Number)
-    return y === year && m - 1 === month
+    const end = e.end_date && e.end_date >= e.start_date ? e.end_date : e.start_date
+    return e.start_date <= monthEnd && end >= monthStart
   })
 
   const days: (number | null)[] = []
@@ -105,7 +130,7 @@ function MonthGrid({
           {days.map((day, i) => {
             if (day === null) return <div key={`empty-${i}`} />
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-            const dayEvents = monthItems.filter((e) => e.start_date === dateStr)
+            const dayEvents = monthItems.filter((e) => occursOn(e, dateStr) && (spanDays(e) <= DOT_MAX_DAYS || e.start_date === dateStr))
             const isToday = isCurrentMonth && today.getDate() === day
             const isSelected = selectedDate === dateStr
             const hasEvents = dayEvents.length > 0
@@ -146,15 +171,21 @@ function MonthGrid({
         {monthItems.length > 0 && (
           <div className="mt-2 space-y-0.5 border-t pt-2">
             {monthItems
-              .sort((a, b) => a.start_date.localeCompare(b.start_date))
+              .slice()
+              .sort((a, b) => {
+                // Zuerst, was in diesem Monat beginnt; laufende lange Einträge danach
+                const aIn = a.start_date >= monthStart ? 0 : 1
+                const bIn = b.start_date >= monthStart ? 0 : 1
+                return aIn - bIn || a.start_date.localeCompare(b.start_date)
+              })
               .slice(0, 6)
               .map((e, i) => (
-                <button key={i} type="button" onClick={() => onDayClick(e.start_date)}
+                <button key={i} type="button" onClick={() => onDayClick(e.start_date >= monthStart ? e.start_date : monthStart)}
                   className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
                   <div className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: EVENT_TYPE_COLORS[e.event_type] }} />
                   <span className="truncate text-[10px] text-gray-600 dark:text-gray-400 flex items-center gap-0.5">
-                    {parseDateLocal(e.start_date).getDate()}. {e.title}
+                    {rangeLabel(e)} {e.title}
                     {(e.recurrence && e.recurrence !== "none" || e.parent_event_id) && (
                       <Repeat className="inline h-2.5 w-2.5 shrink-0 text-[#C5A572]" />
                     )}
@@ -195,12 +226,12 @@ export function YearCalendar({ events, holidays, initialYear }: YearCalendarProp
   ]
 
   const selectedDayEvents = selectedDate
-    ? allItems.filter((e) => e.start_date === selectedDate)
+    ? allItems.filter((e) => occursOn(e, selectedDate))
     : []
 
   const selectedDateObj = selectedDate ? parseDateLocal(selectedDate) : null
-  const realEvents = selectedDayEvents.filter((e) => !e.id.startsWith("holiday-"))
-  const holidayEvents = selectedDayEvents.filter((e) => e.id.startsWith("holiday-"))
+  const realEvents = selectedDayEvents.filter((e) => !isHolidayItem(e))
+  const holidayEvents = selectedDayEvents.filter((e) => isHolidayItem(e))
 
   return (
     <div className="space-y-4">
@@ -255,22 +286,29 @@ export function YearCalendar({ events, holidays, initialYear }: YearCalendarProp
                 <DialogDescription>
                   {selectedDayEvents.length === 0
                     ? "Keine Events an diesem Tag"
-                    : `${realEvents.length} Event${realEvents.length !== 1 ? "s" : ""}${holidayEvents.length > 0 ? ` · ${holidayEvents.length} Feiertag${holidayEvents.length !== 1 ? "e" : ""}` : ""}`
+                    : `${realEvents.length} Event${realEvents.length !== 1 ? "s" : ""}${holidayEvents.length > 0 ? ` · ${holidayEvents.length} Ferien/Feiertag${holidayEvents.length !== 1 ? "e" : ""}` : ""}`
                   }
                 </DialogDescription>
               </DialogHeader>
 
               <div className="max-h-[50vh] overflow-y-auto space-y-2 -mx-1 px-1">
                 {/* Feiertage */}
-                {holidayEvents.map((e, i) => (
-                  <div key={i} className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900 p-3">
-                    <div className="h-3 w-3 shrink-0 rounded-full bg-red-500" />
-                    <div>
-                      <p className="text-sm font-medium text-red-800 dark:text-red-300">{e.title}</p>
-                      <p className="text-xs text-red-500 dark:text-red-400">Feiertag</p>
+                {holidayEvents.map((e, i) => {
+                  const inner = (
+                    <div className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900 p-3 hover:border-red-300">
+                      <div className="h-3 w-3 shrink-0 rounded-full bg-red-500" />
+                      <div>
+                        <p className="text-sm font-medium text-red-800 dark:text-red-300">{e.title}</p>
+                        <p className="text-xs text-red-500 dark:text-red-400">
+                          {e.end_date && e.end_date > e.start_date ? `${rangeLabel(e)} · ` : ""}Feiertag / Ferien / Schliessung
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                  return e.id.startsWith("holiday-")
+                    ? <div key={i}>{inner}</div>
+                    : <Link key={e.id} href={`/kalender/${e.id}`} onClick={() => setSelectedDate(null)}>{inner}</Link>
+                })}
 
                 {/* Events */}
                 {realEvents.map((e) => (

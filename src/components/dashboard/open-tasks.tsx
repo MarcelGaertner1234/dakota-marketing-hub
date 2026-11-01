@@ -27,9 +27,11 @@ const COLLAPSED_COUNT = 5
 export function OpenTasks({
   tasks,
   teamMembers = [],
+  today,
 }: {
   tasks: Task[]
   teamMembers?: TeamMember[]
+  today?: string
 }) {
   const [, startTransition] = useTransition()
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -71,10 +73,11 @@ export function OpenTasks({
         >
           <Checkbox
             className="shrink-0"
+            aria-label={`${task.title} erledigt`}
             onCheckedChange={() => handleComplete(task.id, task.event?.id)}
           />
           <Link
-            href={task.event ? `/kalender/${task.event.id}` : "#"}
+            href={task.event ? `/kalender/${task.event.id}` : "/aufgaben"}
             className="flex-1 min-w-0"
           >
             <p className="text-sm font-medium truncate">{task.title}</p>
@@ -85,8 +88,8 @@ export function OpenTasks({
                 </span>
               )}
               {task.due_date && (
-                <span className="text-xs text-gray-400 dark:text-gray-500">
-                  Fällig: {new Date(task.due_date).toLocaleDateString("de-CH")}
+                <span className={`text-xs ${today && task.due_date < today ? "font-semibold text-red-600" : "text-gray-400 dark:text-gray-500"}`}>
+                  Fällig: {task.due_date.split("-").reverse().join(".")}{today && task.due_date < today ? " · überfällig" : ""}
                 </span>
               )}
             </div>

@@ -218,6 +218,7 @@ export function KanbanBoard({
   const router = useRouter()
 
   useEffect(() => { setMounted(true) }, [])
+  useEffect(() => { setLeads(initialLeads) }, [initialLeads])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

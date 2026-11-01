@@ -61,6 +61,7 @@ export function EventCreateForm({ concepts, prefillDate }: EventCreateFormProps)
                 <option value="own_event">Eigenes Event</option>
                 <option value="local_event">Lokales Event</option>
                 <option value="concept_event">Konzept-Event</option>
+                <option value="holiday">Feiertag / Ferien / Schliessung</option>
               </select>
             </div>
           </div>
@@ -70,10 +71,14 @@ export function EventCreateForm({ concepts, prefillDate }: EventCreateFormProps)
             <Textarea id="description" name="description" rows={3} placeholder="Was ist geplant?" />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="start_date">Datum *</Label>
               <Input id="start_date" name="start_date" type="date" required defaultValue={prefillDate || ""} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end_date">Enddatum (mehrtägig)</Label>
+              <Input id="end_date" name="end_date" type="date" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="start_time">Startzeit</Label>

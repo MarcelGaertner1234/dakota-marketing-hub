@@ -1,5 +1,6 @@
 import { getLead, getLeadEvents, getLeadRounds } from "@/lib/actions/leads"
-import { getEvents } from "@/lib/actions/events"
+import { getEventOptions } from "@/lib/actions/tasks"
+import { todayZurich, addDays } from "@/lib/utils/today"
 import { getTeamMembers } from "@/lib/actions/team"
 import { notFound } from "next/navigation"
 import { LeadDetail } from "./lead-detail"
@@ -15,7 +16,7 @@ export default async function LeadDetailPage({
   const [lead, linkedEvents, allEvents, rounds, teamMembers]: [any, any[], any[], any[], any[]] = await Promise.all([
     getLead(leadId).catch(() => null),
     getLeadEvents(leadId).catch(() => []),
-    getEvents().catch(() => []),
+    getEventOptions(addDays(todayZurich(), -365)).catch(() => []),
     getLeadRounds(leadId).catch(() => []),
     getTeamMembers().catch(() => []),
   ])

@@ -82,7 +82,8 @@ const ACTIVITY_LABELS: Record<string, string> = {
   status_change: "Status",
 }
 
-type SortKey = "name" | "status" | "round" | "updated"
+type SortKey = "name" | "status" | "round" | "updated" | "next"
+const STATUS_ORDER = ["neu", "kontaktiert", "interessiert", "nachfassen", "gebucht", "verloren"]
 
 export function LeadsDatabase({
   leads,
@@ -93,6 +94,7 @@ export function LeadsDatabase({
 }) {
   const router = useRouter()
   const [search, setSearch] = useState("")
+  const [nurOhneAktion, setNurOhneAktion] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>("updated")
   const [sortAsc, setSortAsc] = useState(false)
   const [newRoundLead, setNewRoundLead] = useState<LeadWithRounds | null>(null)
@@ -102,6 +104,8 @@ export function LeadsDatabase({
 
   // Filter
   const filtered = leads.filter((lead) => {
+    if (nurOhneAktion && (lead.next_action || lead.next_action_date) && lead.status !== "verloren") return false
+    if (nurOhneAktion && lead.status === "verloren") return false
     const q = search.toLowerCase()
     if (!q) return true
     return (
@@ -120,7 +124,10 @@ export function LeadsDatabase({
         cmp = a.name.localeCompare(b.name)
         break
       case "status":
-        cmp = a.status.localeCompare(b.status)
+        cmp = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
+        break
+      case "next":
+        cmp = (a.next_action_date ?? "9999").localeCompare(b.next_action_date ?? "9999")
         break
       case "round":
         cmp = (a.round_count || 0) - (b.round_count || 0)
@@ -159,15 +166,25 @@ export function LeadsDatabase({
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="Suche nach Name, Firma, E-Mail, Tag..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* Search + Filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Suche nach Name, Firma, E-Mail, Tag..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setNurOhneAktion(!nurOhneAktion)}
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${nurOhneAktion ? "border-[#C5A572] bg-[#C5A572] text-white" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300"}`}
+        >
+          Ohne nächste Aktion ({leads.filter((l) => !l.next_action && !l.next_action_date && l.status !== "verloren").length})
+        </button>
+        <span className="text-xs text-gray-400">{filtered.length} von {leads.length}</span>
       </div>
 
       {/* Table */}
@@ -199,7 +216,11 @@ export function LeadsDatabase({
                   Letzte Aktivität <ArrowUpDown className="h-3 w-3" />
                 </button>
               </TableHead>
-              <TableHead>Nächste Aktion</TableHead>
+              <TableHead>
+                <button onClick={() => toggleSort("next")} className="flex items-center gap-1 font-medium">
+                  Nächste Aktion <ArrowUpDown className="h-3 w-3" />
+                </button>
+              </TableHead>
               <TableHead className="w-[80px]" />
             </TableRow>
           </TableHeader>

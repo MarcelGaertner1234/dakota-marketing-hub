@@ -29,7 +29,7 @@ export function AnlaesseEingabe({ anlaesse }: { anlaesse: CockpitAnlass[] }) {
     })
   }
   const showForm = open || edit
-  const heute = new Date().toISOString().slice(0, 10)
+  const heute = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(new Date())
   const kommend = anlaesse.filter((a) => a.datum >= heute)
   const vergangen = anlaesse.filter((a) => a.datum < heute)
 
@@ -44,7 +44,7 @@ export function AnlaesseEingabe({ anlaesse }: { anlaesse: CockpitAnlass[] }) {
       <TableCell>
         <button
           type="button"
-          onClick={() => startTransition(async () => { await setAnlassStatus(a.id, a.status === "fix" ? "option" : "fix"); router.refresh() })}
+          onClick={() => startTransition(async () => { const r = await setAnlassStatus(a.id, a.status === "fix" ? "option" : "fix"); if (!r.success) setError(r.error); router.refresh() })}
           className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset", a.status === "fix" ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : "bg-gray-50 text-gray-600 ring-gray-200")}
           title="Klicken zum Umschalten"
         >
@@ -53,7 +53,7 @@ export function AnlaesseEingabe({ anlaesse }: { anlaesse: CockpitAnlass[] }) {
       </TableCell>
       <TableCell className="whitespace-nowrap">
         <Button variant="ghost" size="icon" onClick={() => { setEdit(a); setOpen(true) }} aria-label="Bearbeiten"><Pencil className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" onClick={() => { if (confirm("Anlass löschen?")) startTransition(async () => { await deleteAnlass(a.id); router.refresh() }) }} aria-label="Löschen"><Trash2 className="h-4 w-4 text-red-500" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => { if (confirm("Anlass löschen?")) startTransition(async () => { const r = await deleteAnlass(a.id); if (!r.success) setError(r.error); router.refresh() }) }} aria-label="Löschen"><Trash2 className="h-4 w-4 text-red-500" /></Button>
       </TableCell>
     </TableRow>
   )
@@ -61,7 +61,7 @@ export function AnlaesseEingabe({ anlaesse }: { anlaesse: CockpitAnlass[] }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Anlässe ab 10 Personen. Nur Status «fix» zählt im Forecast, «Option» wird angezeigt, aber nicht gerechnet.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Anlässe ab 10 Personen. Nur Status «fix» zählt im Forecast, «Option» wird angezeigt, aber nicht gerechnet.{error && !showForm && <span className="block text-red-600">{error}</span>}</p>
         {!showForm && <Button onClick={() => { setEdit(null); setOpen(true) }} className="bg-[#C5A572] hover:bg-[#A08050]"><Plus className="mr-2 h-4 w-4" />Anlass eintragen</Button>}
       </div>
       {showForm && (
@@ -101,7 +101,7 @@ export function AnlaesseEingabe({ anlaesse }: { anlaesse: CockpitAnlass[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {kommend.length === 0 && <TableRow><TableCell colSpan={8} className="py-8 text-center text-gray-500">Noch kein Anlass eingetragen.</TableCell></TableRow>}
+              {kommend.length === 0 && <TableRow><TableCell colSpan={8} className="py-8 text-center text-gray-500">{vergangen.length ? "Kein kommender Anlass eingetragen." : "Noch kein Anlass eingetragen."}</TableCell></TableRow>}
               {kommend.map((a) => <Row key={a.id} a={a} />)}
               {vergangen.length > 0 && <TableRow><TableCell colSpan={8} className="bg-[#F8F6F3] text-xs font-medium uppercase tracking-wide text-gray-500">Vergangen</TableCell></TableRow>}
               {vergangen.map((a) => <Row key={a.id} a={a} />)}

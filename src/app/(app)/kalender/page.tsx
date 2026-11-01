@@ -8,7 +8,8 @@ import { getEvents, getHolidays } from "@/lib/actions/events"
 
 export default async function KalenderPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
   const params = await searchParams
-  const currentYear = params.year ? parseInt(params.year) : new Date().getFullYear()
+  const parsed = params.year ? parseInt(params.year, 10) : NaN
+  const currentYear = Number.isFinite(parsed) && parsed >= 2020 && parsed <= 2100 ? parsed : new Date().getFullYear()
   const [events, holidays] = await Promise.all([getEvents(currentYear), getHolidays(currentYear)])
 
   return (

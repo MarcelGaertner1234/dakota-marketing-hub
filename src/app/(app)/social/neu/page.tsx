@@ -5,13 +5,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createSocialPost } from "@/lib/actions/social"
 import { getConcepts } from "@/lib/actions/concepts"
-import { getEvents } from "@/lib/actions/events"
+import { getEventOptions } from "@/lib/actions/tasks"
+import { todayZurich, addDays } from "@/lib/utils/today"
+
+export const dynamic = "force-dynamic"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
 export default async function NeuerPostPage() {
-  const [concepts, events] = await Promise.all([getConcepts(), getEvents()])
+  const [concepts, events] = await Promise.all([getConcepts(), getEventOptions(addDays(todayZurich(), -60))])
 
   async function handleCreate(formData: FormData) {
     "use server"

@@ -10,23 +10,25 @@ import { getTeamMembers } from "@/lib/actions/team"
 import { OpenTasks } from "@/components/dashboard/open-tasks"
 import { UpcomingEvents } from "@/components/dashboard/upcoming-events"
 import { OverdueLeads } from "@/components/dashboard/overdue-leads"
+import { CockpitTile } from "@/components/dashboard/cockpit-tile"
+import { todayZurich, addDays } from "@/lib/utils/today"
 
 export default async function DashboardPage() {
   const supabase = createServerClient()
 
   // Parallel data fetching
-  const now = new Date().toISOString().split("T")[0]
-  const monthEnd = new Date()
-  monthEnd.setMonth(monthEnd.getMonth() + 1)
-  const monthEndStr = monthEnd.toISOString().split("T")[0]
+  const now = todayZurich()
+  const in30 = addDays(now, 30)
+  const in7 = addDays(now, 7)
 
   const [eventsRes, leadsRes, conceptsRes, reviewStats, tasksRes, upcomingRes, overdueRes, teamMembers] =
     await Promise.all([
       supabase
         .from("events")
         .select("id", { count: "exact", head: true })
-        .gte("start_date", now)
-        .lte("start_date", monthEndStr),
+        .neq("event_type", "holiday")
+        .lte("start_date", in30)
+        .or(`start_date.gte.${now},end_date.gte.${now}`),
       supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
@@ -44,16 +46,17 @@ export default async function DashboardPage() {
         .limit(30),
       supabase
         .from("events")
-        .select("id, title, start_date, start_time, event_type")
-        .gte("start_date", now)
+        .select("id, title, start_date, end_date, start_time, event_type")
+        .neq("event_type", "holiday")
+        .or(`start_date.gte.${now},end_date.gte.${now}`)
         .order("start_date")
-        .limit(20),
+        .limit(12),
       supabase
         .from("leads")
         .select("id, name, contact_person, temperature, status, next_action, next_action_date")
         .not("next_action", "is", null)
         .not("next_action_date", "is", null)
-        .lte("next_action_date", new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0])
+        .lte("next_action_date", in7)
         .not("status", "eq", "verloren")
         .order("next_action_date", { ascending: true })
         .limit(15),
@@ -122,6 +125,8 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      <CockpitTile today={now} />
+
       {/* Two columns */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Upcoming Events */}
@@ -152,7 +157,7 @@ export default async function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <OpenTasks tasks={tasksRes.data ?? []} teamMembers={teamMembers ?? []} />
+            <OpenTasks tasks={tasksRes.data ?? []} teamMembers={teamMembers ?? []} today={now} />
           </CardContent>
         </Card>
       </div>
@@ -173,7 +178,7 @@ export default async function DashboardPage() {
             leads={(overdueRes.data ?? [])
               .filter((lead) => lead.next_action && lead.next_action_date)
               .map((lead) => {
-                const todayUtc = new Date(new Date().toISOString().split("T")[0] + "T00:00:00Z").getTime()
+                const todayUtc = new Date(now + "T00:00:00Z").getTime()
                 const dueUtc = new Date(lead.next_action_date + "T00:00:00Z").getTime()
                 return {
                   ...lead,

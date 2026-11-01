@@ -3,7 +3,7 @@ import type { EventType, LeadStatus, LeadTemperature, TaskStatus, TaskPriority, 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   own_event: 'Eigenes Event',
   local_event: 'Lokales Event',
-  holiday: 'Feiertag',
+  holiday: 'Feiertag / Ferien / Schliessung',
   concept_event: 'Konzept-Event',
 }
 

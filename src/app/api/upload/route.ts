@@ -18,7 +18,8 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/gif",
 ])
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024 // 10 MB
+// Vercel begrenzt Request-Bodies auf 4.5 MB; grössere Dateien scheitern vor dem Handler mit 413.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024 // 4 MB
 
 export async function POST(request: NextRequest) {
   const rl = rateLimit(request, { scope: "upload", max: 30, windowMs: 60_000 })

@@ -34,7 +34,7 @@ export function ZielTabelle({ months2027, months2026, settings }: { months2027: 
             <span className="text-2xl font-bold tabular-nums text-[#2C2C2C] dark:text-gray-100">× {uplift.toFixed(2)}</span>
             <span className="text-sm text-gray-500">Jahr: Erwartung {chf(sum.erwartung)} · Break-even {chf(sum.breakEven)} · Basis {chf(sum.basis)} · nötig bis Break-even × {sum.uplift.toFixed(2)}</span>
             <AmpelBadge ampel={sum.ampel} size="lg" />
-            <Button size="sm" variant="outline" disabled={gespeichert || isPending} onClick={() => startTransition(async () => { await saveSetting("uplift", uplift); router.refresh() })}>
+            <Button size="sm" variant="outline" disabled={gespeichert || isPending} onClick={() => startTransition(async () => { const r = await saveSetting("uplift", uplift); if (!r.success) alert(r.error); router.refresh() })}>
               {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : gespeichert ? "gespeichert" : "als Ziel speichern"}
             </Button>
           </div>

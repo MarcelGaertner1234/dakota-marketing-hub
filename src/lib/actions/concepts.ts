@@ -3,15 +3,36 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
-export async function getConcepts() {
+export async function getConcepts(includeInactive = false) {
   const supabase = createServerClient()
-  const { data, error } = await supabase
-    .from("concepts")
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order")
+  let q = supabase.from("concepts").select("*").order("sort_order")
+  if (!includeInactive) q = q.eq("is_active", true)
+  const { data, error } = await q
   if (error) throw error
   return data
+}
+
+/** URL-Slug mit Umlauten (Menü → menue) und Kollisionsschutz (-2, -3 …). */
+async function uniqueSlug(name: string, supabase: ReturnType<typeof createServerClient>): Promise<string> {
+  const base = name
+    .toLowerCase()
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "konzept"
+  const { data } = await supabase.from("concepts").select("slug").like("slug", `${base}%`)
+  const taken = new Set((data ?? []).map((r) => r.slug))
+  if (!taken.has(base)) return base
+  let i = 2
+  while (taken.has(`${base}-${i}`)) i++
+  return `${base}-${i}`
+}
+
+export async function setConceptActive(id: string, active: boolean): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = createServerClient()
+  const { error } = await supabase.from("concepts").update({ is_active: active, updated_at: new Date().toISOString() }).eq("id", id)
+  if (error) return { success: false, error: error.message }
+  revalidatePath("/konzepte"); revalidatePath(`/konzepte/${id}`); revalidatePath("/")
+  return { success: true }
 }
 
 export async function getConcept(id: string) {
@@ -27,8 +48,9 @@ export async function getConcept(id: string) {
 
 export async function createConcept(formData: FormData) {
   const supabase = createServerClient()
-  const name = formData.get("name") as string
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+  const name = ((formData.get("name") as string) || "").trim()
+  if (!name) throw new Error("Name ist erforderlich")
+  const slug = await uniqueSlug(name, supabase)
   const channels = (formData.get("channels") as string)
     ?.split(",")
     .map((c) => c.trim())

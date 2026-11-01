@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Download, Copy, RefreshCw, Printer, Plus, Check, Loader2 } from "lucide-react"
-import QRCode from "qrcode"
 import { BRAND_ASSETS, BRAND_COLORS, GOOGLE_REVIEW_URL } from "@/lib/brand"
 import { secureReviewToken } from "@/lib/crypto-id"
 
@@ -62,6 +61,7 @@ function drawImageContain(
 }
 
 async function createBrandedQrDataUrl(url: string, size: number, logoSrc: string) {
+  const QRCode = (await import("qrcode")).default
   const qrDataUrl = await QRCode.toDataURL(url, {
     width: size,
     margin: 2,

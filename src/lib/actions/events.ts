@@ -7,13 +7,14 @@ export async function getEvents(year?: number) {
   const supabase = createServerClient()
   let query = supabase
     .from("events")
-    .select("*, concept:concepts(*)")
+    .select("id, title, description, event_type, start_date, end_date, start_time, end_time, location, color, concept_id, recurrence, recurrence_end_date, parent_event_id, lead_time_days, concept:concepts(id, name, slug)")
     .order("start_date", { ascending: true })
 
   if (year) {
+    // Alles, was das Jahr berührt: Start im Jahr ODER (mehrtägig und Ende im/nach dem Jahr)
     query = query
-      .gte("start_date", `${year}-01-01`)
       .lte("start_date", `${year}-12-31`)
+      .or(`start_date.gte.${year}-01-01,end_date.gte.${year}-01-01`)
   }
 
   const { data, error } = await query
