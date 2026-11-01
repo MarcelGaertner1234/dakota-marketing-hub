@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
+import NextImage from "next/image"
 import {
   updateStory,
   updateStoryIllustration,
@@ -339,11 +340,9 @@ export function StoryDetail({ story }: { story: Story }) {
                   className="group relative overflow-hidden rounded-lg border cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <img
-                    src={story.illustration_url}
-                    alt="Illustration"
-                    className="h-48 w-full object-contain bg-[#fbfaf6]"
-                  />
+                  <div className="relative h-48 w-full bg-[#fbfaf6]">
+                    <NextImage src={story.illustration_url} alt="Illustration" fill sizes="(max-width: 768px) 100vw, 480px" className="object-contain" />
+                  </div>
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                     <span className="rounded bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-700">
                       Neu hochladen

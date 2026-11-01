@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition, useRef } from "react"
+import { useState, useEffect, useTransition, useRef, useSyncExternalStore } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -68,9 +68,7 @@ export function SocialBoard({ posts: initialPosts }: { posts: Post[] }) {
   const [posts, setPosts] = useState(initialPosts)
   const [view, setView] = useState<ViewMode>("board")
   const [filterPlatform, setFilterPlatform] = useState<FilterPlatform>("all")
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
 
   const filtered = filterPlatform === "all"
     ? posts
@@ -283,11 +281,10 @@ function DraggablePostCard({ post, isDragging }: { post: Post; isDragging: boole
   const router = useRouter()
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined
 
-  if (!transform) {
-    didDrag.current = false
-  } else if (Math.abs(transform.x) > 3 || Math.abs(transform.y) > 3) {
-    didDrag.current = true
-  }
+  useEffect(() => {
+    if (!transform) didDrag.current = false
+    else if (Math.abs(transform.x) > 3 || Math.abs(transform.y) > 3) didDrag.current = true
+  }, [transform])
 
   return (
     <div

@@ -104,8 +104,7 @@ export function LeadsDatabase({
 
   // Filter
   const filtered = leads.filter((lead) => {
-    if (nurOhneAktion && (lead.next_action || lead.next_action_date) && lead.status !== "verloren") return false
-    if (nurOhneAktion && lead.status === "verloren") return false
+    if (nurOhneAktion && (lead.next_action_date || lead.status === "verloren" || lead.status === "gebucht")) return false
     const q = search.toLowerCase()
     if (!q) return true
     return (
@@ -182,7 +181,7 @@ export function LeadsDatabase({
           onClick={() => setNurOhneAktion(!nurOhneAktion)}
           className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${nurOhneAktion ? "border-[#C5A572] bg-[#C5A572] text-white" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300"}`}
         >
-          Ohne nächste Aktion ({leads.filter((l) => !l.next_action && !l.next_action_date && l.status !== "verloren").length})
+          Ohne Termin für nächste Aktion ({leads.filter((l) => !l.next_action_date && l.status !== "verloren" && l.status !== "gebucht").length})
         </button>
         <span className="text-xs text-gray-400">{filtered.length} von {leads.length}</span>
       </div>

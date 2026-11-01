@@ -290,37 +290,24 @@ export async function getLeadRounds(leadId: string) {
 export async function getLeadsWithRounds() {
   const supabase = createServerClient()
 
-  // Leads with all rounds
+  // Eine Abfrage: Leads, ihre Durchläufe und je die letzte Aktivität (eingebettet, pro Lead limitiert)
   const { data: leads, error: leadsErr } = await supabase
     .from("leads")
-    .select("*, rounds:lead_rounds(*)")
+    .select("id, name, company, lead_type, email, phone, status, tags, temperature, next_action, next_action_date, contact_person, contact_role, created_at, updated_at, rounds:lead_rounds(id, round_number, reason, started_at, ended_at, outcome), last_act:lead_activities(activity_type, contacted_at)")
     .order("updated_at", { ascending: false })
+    .order("contacted_at", { referencedTable: "lead_activities", ascending: false })
+    .limit(1, { referencedTable: "lead_activities" })
   if (leadsErr) throw leadsErr
 
-  // Last activity per lead
-  const { data: activities, error: actErr } = await supabase
-    .from("lead_activities")
-    .select("lead_id, activity_type, contacted_at")
-    .order("contacted_at", { ascending: false })
-    .limit(500)
-  if (actErr) throw actErr
-
-  // Build last-activity map
-  const lastActivityMap = new Map<string, { activity_type: string; contacted_at: string }>()
-  for (const act of activities || []) {
-    if (!lastActivityMap.has(act.lead_id)) {
-      lastActivityMap.set(act.lead_id, { activity_type: act.activity_type, contacted_at: act.contacted_at })
-    }
-  }
-
   return (leads || []).map((lead) => {
-    const rounds = (lead.rounds || []) as Array<{ id: string; round_number: number; reason: string; started_at: string; ended_at: string | null; outcome: string | null }>
+    const { last_act, ...rest } = lead as typeof lead & { last_act?: Array<{ activity_type: string; contacted_at: string }> }
+    const rounds = (rest.rounds || []) as Array<{ id: string; round_number: number; reason: string; started_at: string; ended_at: string | null; outcome: string | null }>
     const currentRound = rounds.find((r) => !r.ended_at) || rounds[0]
     return {
-      ...lead,
+      ...rest,
       round_count: rounds.length,
       current_round: currentRound || null,
-      last_activity: lastActivityMap.get(lead.id) || null,
+      last_activity: last_act?.[0] ?? null,
     }
   })
 }

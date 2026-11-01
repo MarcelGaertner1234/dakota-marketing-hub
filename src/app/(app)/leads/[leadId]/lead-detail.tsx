@@ -664,7 +664,7 @@ export function LeadDetail({
                 <CardTitle>Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <LeadStatusSelect leadId={lead.id} currentStatus={status} />
+                <LeadStatusSelect leadId={lead.id} currentStatus={status} teamMembers={teamMembers} />
               </CardContent>
             </Card>
             <Card>
@@ -973,7 +973,7 @@ export function LeadDetail({
           <CardTitle>Aktivität erfassen</CardTitle>
         </CardHeader>
         <CardContent>
-          <ActivityForm leadId={lead.id} />
+          <ActivityForm leadId={lead.id} teamMembers={teamMembers} />
         </CardContent>
       </Card>
 

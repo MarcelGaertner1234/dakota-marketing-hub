@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { addLeadActivity } from "@/lib/actions/leads"
 
-export function ActivityForm({ leadId }: { leadId: string }) {
+export function ActivityForm({ leadId, teamMembers = [] }: { leadId: string; teamMembers?: Array<{ id: string; name: string }> }) {
   const formRef = useRef<HTMLFormElement>(null)
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -45,6 +45,20 @@ export function ActivityForm({ leadId }: { leadId: string }) {
             <option value="treffen">Treffen</option>
             <option value="nachricht">Nachricht</option>
             <option value="notiz">Notiz</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contacted_by">Wer</Label>
+          <select
+            id="contacted_by"
+            name="contacted_by"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            defaultValue=""
+          >
+            <option value="">Nicht angegeben</option>
+            {teamMembers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
           </select>
         </div>
       </div>

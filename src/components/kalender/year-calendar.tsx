@@ -210,6 +210,13 @@ export function YearCalendar({ events, holidays, initialYear }: YearCalendarProp
   const pathname = usePathname()
   const year = initialYear
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [hiddenTypes, setHiddenTypes] = useState<Set<EventType>>(new Set())
+
+  function toggleType(t: EventType) {
+    const next = new Set(hiddenTypes)
+    if (next.has(t)) next.delete(t); else next.add(t)
+    setHiddenTypes(next)
+  }
 
   function changeYear(newYear: number) {
     router.push(`${pathname}?year=${newYear}`)
@@ -223,7 +230,7 @@ export function YearCalendar({ events, holidays, initialYear }: YearCalendarProp
       start_date: h.date,
       event_type: "holiday" as EventType,
     })),
-  ]
+  ].filter((e) => !hiddenTypes.has(e.event_type))
 
   const selectedDayEvents = selectedDate
     ? allItems.filter((e) => occursOn(e, selectedDate))
@@ -246,12 +253,22 @@ export function YearCalendar({ events, holidays, initialYear }: YearCalendarProp
           </Button>
         </div>
         <div className="flex flex-wrap gap-3">
-          {(Object.entries(EVENT_TYPE_LABELS) as [EventType, string][]).map(([type, label]) => (
-            <div key={type} className="flex items-center gap-1.5">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: EVENT_TYPE_COLORS[type] }} />
-              <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>
-            </div>
-          ))}
+          {(Object.entries(EVENT_TYPE_LABELS) as [EventType, string][]).map(([type, label]) => {
+            const off = hiddenTypes.has(type)
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => toggleType(type)}
+                aria-pressed={!off}
+                title={off ? `${label} einblenden` : `${label} ausblenden`}
+                className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition-opacity ${off ? "border-dashed opacity-40" : "border-transparent"}`}
+              >
+                <div className="h-3 w-3 rounded-full" style={{ backgroundColor: EVENT_TYPE_COLORS[type] }} />
+                <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 

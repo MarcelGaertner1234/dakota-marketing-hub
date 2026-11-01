@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { rateLimitAction } from "@/lib/rate-limit"
 import {
   generateTischkarteText,
   OCCASION_LABELS,
@@ -158,7 +159,8 @@ export async function createTischkarte(formData: FormData) {
   const tableNumber = (formData.get("table_number") as string) || null
   const customHint = (formData.get("custom_hint") as string) || null
 
-  // 2. KI-Text generieren
+  // 2. KI-Text generieren (Rate-Limit wie die API-Routen: 10 pro Minute und IP)
+  await rateLimitAction("ai-text", 10, 60_000)
   const generated = await generateTischkarteText({
     guestName,
     occasion,
@@ -280,6 +282,7 @@ export async function regenerateTischkarteText(id: string) {
   const language: TischkartenLanguage =
     VALID_LANGUAGES.includes(row.language) ? row.language : "de"
 
+  await rateLimitAction("ai-text", 10, 60_000)
   const generated = await generateTischkarteText({
     guestName: row.guest_name,
     occasion: row.occasion,

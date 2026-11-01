@@ -91,10 +91,12 @@ export default function TeamSettings({ team }: { team: TeamMember[] }) {
   function handleDelete() {
     if (!deleteConfirm) return
     startTransition(async () => {
-      await deleteTeamMember(deleteConfirm.id)
+      const r = await deleteTeamMember(deleteConfirm.id)
+      if (!r.success) { alert(r.error); return }
       setDeleteConfirm(null)
     })
   }
+
 
   return (
     <>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Star, QrCode, Gift } from "lucide-react"
 import Link from "next/link"
-import { getReviewStats, getReviews, getGoodyReviews } from "@/lib/actions/reviews"
+import { getReviewsOverview } from "@/lib/actions/reviews"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GoodyTracker } from "./goody-tracker"
 
@@ -27,11 +27,7 @@ function StarDisplay({ rating }: { rating: number }) {
 }
 
 export default async function BewertungenPage() {
-  const [stats, reviews, goodyReviews] = await Promise.all([
-    getReviewStats(),
-    getReviews(),
-    getGoodyReviews(),
-  ])
+  const { stats, reviews, goodyReviews } = await getReviewsOverview()
 
   const openGoodyCodes = goodyReviews.filter((r) => !r.goody_claimed).length
 

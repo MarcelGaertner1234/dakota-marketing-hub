@@ -5,9 +5,28 @@
 // If Dakota outgrows that, swap this for Upstash/Redis.
 
 import { NextRequest, NextResponse } from "next/server"
+import { headers } from "next/headers"
 
 type Hit = { count: number; resetAt: number }
 const store = new Map<string, Hit>()
+
+/** Kern: zählt einen Treffer; liefert Sekunden bis Reset, wenn das Limit erreicht ist, sonst null. */
+function take(key: string, max: number, windowMs: number): number | null {
+  const now = Date.now()
+  const hit = store.get(key)
+  if (!hit || hit.resetAt <= now) { store.set(key, { count: 1, resetAt: now + windowMs }); return null }
+  if (hit.count >= max) return Math.ceil((hit.resetAt - now) / 1000)
+  hit.count++
+  return null
+}
+
+/** Für Server-Actions (kein NextRequest): wirft bei Überschreitung. */
+export async function rateLimitAction(scope: string, max: number, windowMs: number): Promise<void> {
+  const h = await headers()
+  const ip = h.get("x-forwarded-for")?.split(",")[0].trim() ?? h.get("x-real-ip") ?? "unknown"
+  const retry = take(`${scope}:${ip}`, max, windowMs)
+  if (retry != null) throw new Error(`Zu viele Anfragen. Bitte in ${retry} Sekunden erneut versuchen.`)
+}
 
 function clientIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for")

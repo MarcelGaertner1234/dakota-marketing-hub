@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, MapPin, Clock, Calendar, Pencil, Save, X, Loader2, Users, Repeat, Trash2, Upload, ImageIcon, Plus } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { updateEvent, deleteEvent } from "@/lib/actions/events"
 import { useRouter } from "next/navigation"
 import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS, LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants"
@@ -118,12 +119,32 @@ export function EventDetail({
   )
   const isInLeadTime = (event.event_type === "own_event" || event.event_type === "concept_event") && now >= warningDate && (now < eventDate || now.toDateString() === eventDate.toDateString())
 
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [confirmSeries, setConfirmSeries] = useState<{ formData: FormData; deleteCount: number; taskCount: number } | null>(null)
+
   function handleSave(formData: FormData) {
+    setSaveError(null)
     startTransition(async () => {
-      await updateEvent(event.id, formData)
-      setIsEditing(false)
-      router.refresh()
+      try {
+        const r = await updateEvent(event.id, formData)
+        if (!r.success) {
+          if ("needsConfirm" in r) { setConfirmSeries({ formData, deleteCount: r.deleteCount, taskCount: r.taskCount }); return }
+          setSaveError(r.error); return
+        }
+        setIsEditing(false)
+        router.refresh()
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : "Speichern fehlgeschlagen")
+      }
     })
+  }
+
+  function handleSaveConfirmed() {
+    if (!confirmSeries) return
+    const fd = confirmSeries.formData
+    fd.set("confirm_children", "1")
+    setConfirmSeries(null)
+    handleSave(fd)
   }
 
   function handleDelete() {
@@ -179,7 +200,7 @@ export function EventDetail({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <Link href="/kalender">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
@@ -249,6 +270,9 @@ export function EventDetail({
               <CardTitle>Event bearbeiten</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {saveError && (
+                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">{saveError}</div>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="title">Titel *</Label>
@@ -533,7 +557,7 @@ export function EventDetail({
                   {eventImages.map((file) => (
                     <div key={file.path} className="group relative">
                       <div className="relative overflow-hidden rounded-lg border cursor-pointer" onClick={() => setLightboxUrl(file.url)}>
-                        <img src={file.url} alt={file.name} className="h-36 w-full object-cover" />
+                        <div className="relative h-36 w-full"><Image src={file.url} alt={file.name} fill sizes="(max-width: 640px) 50vw, 200px" className="object-cover" /></div>
                         <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                           <button
                             type="button"
@@ -628,6 +652,22 @@ export function EventDetail({
             <X className="h-6 w-6" />
           </button>
           <img src={lightboxUrl} alt="Vergrössert" className="max-h-[95vh] max-w-[95vw] object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {/* Serien-Änderung: Folge-Termine mit Aufgaben würden gelöscht */}
+      {confirmSeries && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 max-w-sm rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
+            <h3 className="text-lg font-bold text-[#2C2C2C] dark:text-gray-100">Serie ändern?</h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              {confirmSeries.deleteCount} Folge-Termin{confirmSeries.deleteCount === 1 ? "" : "e"} fallen aus der neuen Serie heraus und werden gelöscht, zusammen mit {confirmSeries.taskCount} verknüpfte{confirmSeries.taskCount === 1 ? "r Aufgabe" : "n Aufgaben"}. Termine, die bleiben, behalten ihre Aufgaben.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setConfirmSeries(null)} disabled={isPending}>Abbrechen</Button>
+              <Button className="bg-red-500 text-white hover:bg-red-600" onClick={handleSaveConfirmed} disabled={isPending}>Trotzdem speichern</Button>
+            </div>
+          </div>
         </div>
       )}
 

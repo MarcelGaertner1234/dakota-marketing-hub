@@ -19,6 +19,7 @@ import {
   ImageIcon,
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import {
   regenerateTischkarteText,
   updateTischkarteIllustration,
@@ -206,14 +207,15 @@ export function TischkarteDetail({ tischkarte }: { tischkarte: Tischkarte }) {
             </CardHeader>
             <CardContent>
               <div className="overflow-hidden rounded-lg border bg-[#fbfaf6]">
-                <img
-                  src={
-                    tischkarte.illustration_url ??
-                    "/branding/tischkarten-default.png"
-                  }
-                  alt="Tischkarten Illustration"
-                  className="h-48 w-full object-contain"
-                />
+                <div className="relative h-48 w-full">
+                  <Image
+                    src={tischkarte.illustration_url ?? "/branding/tischkarten-default.png"}
+                    alt="Tischkarten Illustration"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 480px"
+                    className="object-contain"
+                  />
+                </div>
               </div>
               {!tischkarte.illustration_url && (
                 <p className="mt-2 text-center text-[11px] italic text-gray-400">

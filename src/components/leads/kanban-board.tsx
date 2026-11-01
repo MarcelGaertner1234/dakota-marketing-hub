@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useRef, useEffect } from "react"
+import { useState, useTransition, useRef, useEffect, useSyncExternalStore } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -131,11 +131,10 @@ function LeadCard({
     ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
     : undefined
 
-  if (!transform) {
-    didDrag.current = false
-  } else if (Math.abs(transform.x) > 3 || Math.abs(transform.y) > 3) {
-    didDrag.current = true
-  }
+  useEffect(() => {
+    if (!transform) didDrag.current = false
+    else if (Math.abs(transform.x) > 3 || Math.abs(transform.y) > 3) didDrag.current = true
+  }, [transform])
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
@@ -213,11 +212,9 @@ export function KanbanBoard({
   const [overId, setOverId] = useState<string | null>(null)
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null)
   const [selectedMember, setSelectedMember] = useState<string>("")
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
   const [, startTransition] = useTransition()
   const router = useRouter()
-
-  useEffect(() => { setMounted(true) }, [])
   useEffect(() => { setLeads(initialLeads) }, [initialLeads])
 
   const sensors = useSensors(

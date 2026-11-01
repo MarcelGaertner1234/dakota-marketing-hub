@@ -30,6 +30,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { updateSocialPost, deleteSocialPost } from "@/lib/actions/social"
 import { useRouter } from "next/navigation"
 import { PostStatusSelect } from "./post-status-select"
@@ -266,7 +267,7 @@ export function PostDetail({ post }: { post: PostData }) {
               {images.map((file) => (
                 <div key={file.path} className="group relative">
                   <div className="relative overflow-hidden rounded-lg border cursor-pointer" onClick={() => setLightboxUrl(file.url)}>
-                    <img src={file.url} alt={file.name} className="h-36 w-full object-cover" />
+                    <div className="relative h-36 w-full"><Image src={file.url} alt={file.name} fill sizes="(max-width: 640px) 50vw, 200px" className="object-cover" /></div>
                     <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
                         type="button"

@@ -1,100 +1,62 @@
 "use server"
 
+import { cache } from "react"
 import { createServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import { secureGoodyCode } from "@/lib/crypto-id"
+
+const REVIEW_COLS = "id, token, food_rating, ambience_rating, service_rating, comment, guest_name, guest_email, goody_claimed, goody_code, created_at"
+
+type Rating = { food_rating: number | null; ambience_rating: number | null; service_rating: number | null }
+
+function statsFrom(rows: Rating[]) {
+  if (rows.length === 0) return { food: 0, ambience: 0, service: 0, total: 0 }
+  const avg = (key: keyof Rating) => {
+    const vals = rows.map((r) => r[key]).filter((v): v is number => v != null)
+    return vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0
+  }
+  return { food: avg("food_rating"), ambience: avg("ambience_rating"), service: avg("service_rating"), total: rows.length }
+}
+
+/** Neueste Bewertungen (eine Abfrage) plus Stats und Goody-Liste daraus. */
+export async function getReviewsOverview(limit = 300) {
+  const supabase = createServerClient()
+  const [{ data, error }, { count }] = await Promise.all([
+    supabase.from("reviews").select(REVIEW_COLS).order("created_at", { ascending: false }).limit(limit),
+    supabase.from("reviews").select("id", { count: "exact", head: true }),
+  ])
+  if (error) throw error
+  const reviews = data ?? []
+  const stats = { ...statsFrom(reviews), total: count ?? reviews.length }
+  const goodyReviews = reviews.filter((r) => r.goody_code)
+  return { reviews, stats, goodyReviews, hasMore: (count ?? 0) > reviews.length }
+}
 
 export async function getReviews() {
-  const supabase = createServerClient()
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("*")
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return data
+  return (await getReviewsOverview()).reviews
 }
 
-export async function getReviewStats() {
+/** Nur die drei Rating-Spalten, pro Request einmal (Dashboard + Bewertungen). */
+export const getReviewStats = cache(async () => {
   const supabase = createServerClient()
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("food_rating, ambience_rating, service_rating")
+  const { data, error } = await supabase.from("reviews").select("food_rating, ambience_rating, service_rating")
   if (error) throw error
-
-  if (!data || data.length === 0) {
-    return { food: 0, ambience: 0, service: 0, total: 0 }
-  }
-
-  const total = data.length
-
-  const foodRatings = data.filter((r) => r.food_rating != null)
-  const ambienceRatings = data.filter((r) => r.ambience_rating != null)
-  const serviceRatings = data.filter((r) => r.service_rating != null)
-
-  const food = foodRatings.length > 0
-    ? foodRatings.reduce((sum, r) => sum + r.food_rating, 0) / foodRatings.length
-    : 0
-  const ambience = ambienceRatings.length > 0
-    ? ambienceRatings.reduce((sum, r) => sum + r.ambience_rating, 0) / ambienceRatings.length
-    : 0
-  const service = serviceRatings.length > 0
-    ? serviceRatings.reduce((sum, r) => sum + r.service_rating, 0) / serviceRatings.length
-    : 0
-
-  return {
-    food: Math.round(food * 10) / 10,
-    ambience: Math.round(ambience * 10) / 10,
-    service: Math.round(service * 10) / 10,
-    total,
-  }
-}
+  return statsFrom(data ?? [])
+})
 
 export async function getGoodyReviews() {
-  const supabase = createServerClient()
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("*")
-    .not("goody_code", "is", null)
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return data
+  return (await getReviewsOverview()).goodyReviews
 }
 
 export async function claimGoodyCode(reviewId: string) {
   const supabase = createServerClient()
-  const { error } = await supabase
-    .from("reviews")
-    .update({ goody_claimed: true })
-    .eq("id", reviewId)
+  const { error } = await supabase.from("reviews").update({ goody_claimed: true }).eq("id", reviewId)
   if (error) throw error
   revalidatePath("/bewertungen")
 }
 
 export async function unclaimGoodyCode(reviewId: string) {
   const supabase = createServerClient()
-  const { error } = await supabase
-    .from("reviews")
-    .update({ goody_claimed: false })
-    .eq("id", reviewId)
+  const { error } = await supabase.from("reviews").update({ goody_claimed: false }).eq("id", reviewId)
   if (error) throw error
   revalidatePath("/bewertungen")
-}
-
-export async function createReview(data: {
-  token: string
-  food_rating: number
-  ambience_rating: number
-  service_rating: number
-  comment?: string
-  guest_name?: string
-  guest_email?: string
-}) {
-  const supabase = createServerClient()
-  const goodyCode = secureGoodyCode()
-  const { error } = await supabase.from("reviews").insert({
-    ...data,
-    goody_code: goodyCode,
-  })
-  if (error) throw error
-  return goodyCode
 }

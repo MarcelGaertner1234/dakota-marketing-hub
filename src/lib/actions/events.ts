@@ -188,25 +188,41 @@ function offsetDate(dateStr: string, days: number): string {
   return formatDate(d)
 }
 
-export async function updateEvent(id: string, formData: FormData) {
+export type UpdateEventResult =
+  | { success: true }
+  | { success: false; error: string }
+  | { success: false; needsConfirm: true; deleteCount: number; taskCount: number }
+
+/**
+ * Event speichern. Serien werden per Diff nachgeführt: bestehende Folge-Termine, deren Datum
+ * in der neuen Serie liegt, bleiben (inkl. Aufgaben) und werden aktualisiert; nur weggefallene
+ * Termine werden gelöscht, neue eingefügt. Hängen an weggefallenen Terminen Aufgaben, wird
+ * ohne `confirm_children=1` nichts gelöscht, sondern `needsConfirm` zurückgegeben.
+ */
+export async function updateEvent(id: string, formData: FormData): Promise<UpdateEventResult> {
   const supabase = createServerClient()
 
+  const title = ((formData.get("title") as string) || "").trim()
+  const startDate = formData.get("start_date") as string
+  const endDate = (formData.get("end_date") as string) || null
   const recurrence = (formData.get("recurrence") as string) || "none"
   const recurrenceEndDate = (formData.get("recurrence_end_date") as string) || null
+  const confirmed = formData.get("confirm_children") === "1"
 
-  // Fetch current event to detect recurrence changes
-  const { data: existing } = await supabase
-    .from("events")
-    .select("recurrence, recurrence_end_date, start_date, end_date")
-    .eq("id", id)
-    .single()
+  if (!title) return { success: false, error: "Titel ist erforderlich" }
+  if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return { success: false, error: "Startdatum ist erforderlich (YYYY-MM-DD)" }
+  if (endDate && endDate < startDate) return { success: false, error: "Enddatum liegt vor dem Startdatum" }
+  if (recurrence !== "none") {
+    if (!recurrenceEndDate || !/^\d{4}-\d{2}-\d{2}$/.test(recurrenceEndDate)) return { success: false, error: "«Wiederholen bis» fehlt" }
+    if (recurrenceEndDate <= startDate) return { success: false, error: "Serien-Enddatum muss nach dem Startdatum liegen" }
+  }
 
   const updatedFields = {
-    title: formData.get("title") as string,
+    title,
     description: (formData.get("description") as string) || null,
     event_type: (formData.get("event_type") as string) || "own_event",
-    start_date: formData.get("start_date") as string,
-    end_date: (formData.get("end_date") as string) || null,
+    start_date: startDate,
+    end_date: endDate,
     start_time: (formData.get("start_time") as string) || null,
     end_time: (formData.get("end_time") as string) || null,
     location: (formData.get("location") as string) || "Dakota Air Lounge",
@@ -217,70 +233,67 @@ export async function updateEvent(id: string, formData: FormData) {
     updated_at: new Date().toISOString(),
   }
 
-  const { error } = await supabase
+  // Gewünschte Folge-Termine der (neuen) Serie
+  const desired = recurrence !== "none" && recurrenceEndDate ? generateRecurrenceDates(startDate, recurrence, recurrenceEndDate) : []
+  let endDateOffsetDays = 0
+  if (endDate) {
+    endDateOffsetDays = Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000)
+  }
+  const childEnd = (date: string) => (endDateOffsetDays > 0 ? offsetDate(date, endDateOffsetDays) : null)
+
+  // Bestehende Folge-Termine mit Aufgabenzahl
+  const { data: existing, error: exErr } = await supabase
     .from("events")
-    .update(updatedFields)
-    .eq("id", id)
-  if (error) throw error
+    .select("id, start_date, tasks(count)")
+    .eq("parent_event_id", id)
+  if (exErr) return { success: false, error: exErr.message }
+  type Child = { id: string; start_date: string; tasks: Array<{ count: number }> | null }
+  const children = (existing ?? []) as Child[]
+  const desiredSet = new Set(desired)
+  const existingDates = new Set(children.map((c) => c.start_date))
+  const keep = children.filter((c) => desiredSet.has(c.start_date))
+  const drop = children.filter((c) => !desiredSet.has(c.start_date))
+  const add = desired.filter((d) => !existingDates.has(d))
+  const dropTasks = drop.reduce((n, c) => n + (c.tasks?.[0]?.count ?? 0), 0)
 
-  // Regenerate child events if recurrence changed
-  const recurrenceChanged =
-    existing &&
-    (existing.recurrence !== recurrence ||
-      existing.recurrence_end_date !== (recurrence !== "none" ? recurrenceEndDate : null))
+  if (drop.length > 0 && dropTasks > 0 && !confirmed) {
+    return { success: false, needsConfirm: true, deleteCount: drop.length, taskCount: dropTasks }
+  }
 
-  if (recurrenceChanged) {
-    // Delete existing child events
-    const { error: deleteChildError } = await supabase
-      .from("events")
-      .delete()
-      .eq("parent_event_id", id)
-    if (deleteChildError) throw deleteChildError
+  const { error } = await supabase.from("events").update(updatedFields).eq("id", id)
+  if (error) return { success: false, error: error.message }
 
-    // Regenerate if new recurrence is not "none"
-    if (recurrence !== "none" && recurrenceEndDate) {
-      const childDates = generateRecurrenceDates(
-        updatedFields.start_date,
-        recurrence,
-        recurrenceEndDate
-      )
-
-      let endDateOffsetDays = 0
-      if (updatedFields.end_date) {
-        const startMs = new Date(updatedFields.start_date).getTime()
-        const endMs = new Date(updatedFields.end_date).getTime()
-        endDateOffsetDays = Math.round((endMs - startMs) / (1000 * 60 * 60 * 24))
-      }
-
-      if (childDates.length > 0) {
-        const children = childDates.map((date) => {
-          const childEndDate = endDateOffsetDays > 0
-            ? offsetDate(date, endDateOffsetDays)
-            : null
-          return {
-            title: updatedFields.title,
-            description: updatedFields.description,
-            event_type: updatedFields.event_type,
-            start_date: date,
-            end_date: childEndDate,
-            start_time: updatedFields.start_time,
-            end_time: updatedFields.end_time,
-            location: updatedFields.location,
-            concept_id: updatedFields.concept_id,
-            lead_time_days: updatedFields.lead_time_days,
-            recurrence: "none" as const,
-            parent_event_id: id,
-          }
-        })
-
-        const { error: childError } = await supabase.from("events").insert(children)
-        if (childError) throw childError
-      }
-    }
+  const shared = {
+    title: updatedFields.title,
+    description: updatedFields.description,
+    event_type: updatedFields.event_type,
+    start_time: updatedFields.start_time,
+    end_time: updatedFields.end_time,
+    location: updatedFields.location,
+    concept_id: updatedFields.concept_id,
+    lead_time_days: updatedFields.lead_time_days,
+    updated_at: updatedFields.updated_at,
+  }
+  // Bleibende Folge-Termine: gemeinsame Felder nachziehen (auch ohne Serien-Änderung)
+  for (const c of keep) {
+    const { error: upErr } = await supabase.from("events").update({ ...shared, end_date: childEnd(c.start_date) }).eq("id", c.id)
+    if (upErr) return { success: false, error: upErr.message }
+  }
+  if (drop.length > 0) {
+    const { error: delErr } = await supabase.from("events").delete().in("id", drop.map((c) => c.id))
+    if (delErr) return { success: false, error: delErr.message }
+  }
+  if (add.length > 0) {
+    const rows = add.map((date) => ({ ...shared, start_date: date, end_date: childEnd(date), recurrence: "none" as const, parent_event_id: id }))
+    const { error: insErr } = await supabase.from("events").insert(rows)
+    if (insErr) return { success: false, error: insErr.message }
   }
 
   revalidatePath("/kalender")
   revalidatePath(`/kalender/${id}`)
+  revalidatePath("/aufgaben")
+  revalidatePath("/")
+  return { success: true }
 }
 
 export async function deleteEvent(id: string) {

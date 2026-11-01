@@ -22,6 +22,7 @@ import {
   Plus,
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { updateConcept, updateConceptImage } from "@/lib/actions/concepts"
 import { useRouter } from "next/navigation"
 
@@ -205,11 +206,9 @@ export function ConceptDetail({ concept }: { concept: ConceptData }) {
               {images.map((file) => (
                 <div key={file.path} className="group relative">
                   <div className="relative overflow-hidden rounded-lg border cursor-pointer" onClick={() => setLightboxUrl(file.url)}>
-                    <img
-                      src={file.url}
-                      alt={file.name}
-                      className="h-40 w-full object-cover"
-                    />
+                    <div className="relative h-40 w-full">
+                      <Image src={file.url} alt={file.name} fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
+                    </div>
                     {/* Cover badge */}
                     {concept.image_url === file.url && (
                       <div className="absolute top-2 left-2">

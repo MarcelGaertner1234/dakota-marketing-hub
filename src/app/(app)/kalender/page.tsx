@@ -14,7 +14,7 @@ export default async function KalenderPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-[#2C2C2C] dark:text-gray-100">Marketing-Kalender</h1>
           <p className="text-gray-500 dark:text-gray-400">Alle Events, Anlässe und Feiertage auf einen Blick</p>
