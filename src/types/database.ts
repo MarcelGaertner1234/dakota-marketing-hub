@@ -289,3 +289,73 @@ export interface Database {
     }
   }
 }
+
+// ============================================
+// COCKPIT (AIRL Monats-Cockpit)
+// ============================================
+
+export interface CockpitSetting {
+  key: string
+  value: number
+  label: string | null
+  updated_at: string
+}
+
+export interface CockpitMonth {
+  monat: string // YYYY-MM-01
+  betriebstage: number
+  offene_tage: number | null
+  verdichtung: number
+  hp_einzel_pers: number
+  hp_gruppe_pers: number
+  logiernaechte: number
+  gaeste_woche: number
+  bon: number
+  kapitel_menues: number
+  ist_restaurant: number | null
+  ist_food: number | null
+  ist_beverage: number | null
+  ist_fruehstueck: number | null
+  ist_hp: number | null
+  ist_personen: number | null
+  geschaetzt: boolean
+  quelle: string | null
+  notiz: string | null
+  updated_at: string
+}
+
+export interface CockpitWoche {
+  id: string
+  kw: number
+  von: string
+  bis: string
+  restaurant_netto: number
+  food: number | null
+  beverage: number | null
+  trinkgeld: number | null
+  fruehstueck: number
+  halbpension: number
+  personen: number
+  kapitel_menues: number
+  anlaesse_anzahl: number
+  anlass_umsatz: number
+  ausfalltage: number
+  bemerkung: string | null
+  erfasst_von: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AnlassStatus = 'fix' | 'option'
+
+export interface CockpitAnlass {
+  id: string
+  datum: string
+  anlass: string
+  personen: number
+  preis: number
+  status: AnlassStatus
+  bemerkung: string | null
+  created_at: string
+  updated_at: string
+}

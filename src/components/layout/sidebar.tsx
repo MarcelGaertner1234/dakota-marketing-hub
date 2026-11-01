@@ -17,6 +17,7 @@ import {
   Moon,
   BookOpen,
   Utensils,
+  Gauge,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -25,6 +26,7 @@ import { BRAND_ASSETS } from "@/lib/brand"
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/cockpit", label: "Cockpit", icon: Gauge },
   { href: "/kalender", label: "Kalender", icon: Calendar },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/konzepte", label: "Konzepte", icon: Lightbulb },
