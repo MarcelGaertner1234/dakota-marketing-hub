@@ -45,7 +45,7 @@ for (let m = 1; m <= 12; m++) {
   months.push({ monat: `2026-${String(m).padStart(2, '0')}-01`, betriebstage: m === 12 ? 9 : betriebstage(2026, m, []), offene_tage: tage, verdichtung: 1, ist_restaurant: rest, ist_fruehstueck: fr, ist_hp: hp, geschaetzt: est, quelle })
 }
 for (let m = 1; m <= 12; m++) {
-  months.push({ monat: `2027-${String(m).padStart(2, '0')}-01`, betriebstage: betriebstage(2027, m, CLOSED_2027), verdichtung: VERD[m], ist_fruehstueck: FR_EST_2027[m] ?? null, quelle: m >= 11 ? 'Frühstück geschätzt (keine Referenz 2026)' : null })
+  months.push({ monat: `2027-${String(m).padStart(2, '0')}-01`, betriebstage: betriebstage(2027, m, CLOSED_2027), offene_tage: null, verdichtung: VERD[m], ist_restaurant: null, ist_fruehstueck: FR_EST_2027[m] ?? null, ist_hp: null, geschaetzt: false, quelle: m >= 11 ? 'Frühstück geschätzt (keine Referenz 2026)' : null })
 }
 const { error: e1 } = await sb.from('cockpit_months').upsert(months, { onConflict: 'monat', ignoreDuplicates: false })
 if (e1) { console.error('months:', e1.message); process.exit(1) }
